@@ -1,0 +1,11 @@
+import json,sys,time
+exec(open("install.py",encoding="utf-8").read().split('T=r"team"')[0])
+def L(code,dm="Client"): return call("execute_luau",{"code":code,"datamodel_type":dm})
+print(L('workspace:SetAttribute("DevHoldLobby",true) return 1',"Edit"))
+print(call("start_stop_play",{"is_start":True})); time.sleep(8)
+print(L('local h=game.Players.LocalPlayer.Character.Head local o={h.ClassName,tostring(h.Transparency),tostring(h.Size)} for _,c in h:GetChildren() do table.insert(o,c.ClassName..":"..c.Name.." "..tostring(c:GetAttribute("Expr"))) end return table.concat(o," | ")'))
+print(L('local n=0 for _,c in workspace:GetChildren() do if c:IsA("Highlight") then n+=1 end end local s=game.Players.LocalPlayer.PlayerScripts:FindFirstChild("AnimeStyle") return "hl="..n.." script="..tostring(s and s.Enabled)'))
+print(call("get_console_output",{})[-3000:])
+print(call("start_stop_play",{"is_start":False})); time.sleep(2)
+print(L('workspace:SetAttribute("DevHoldLobby",nil) return 1',"Edit"))
+p.terminate()

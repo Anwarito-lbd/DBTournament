@@ -1,0 +1,2 @@
+exec(open("install.py",encoding="utf-8").read().split('T=r"team"')[0])
+print(call("execute_luau",{"code":'local h=game.ServerScriptService:FindFirstChild("V13TestHooks") if h then h:Destroy() end workspace:SetAttribute("DevHoldLobby",nil) local s=game.ReplicatedStorage.Shared.Config.Source return tostring(game.ServerScriptService:FindFirstChild("V13TestHooks")).." "..(s:match("ROUND_MAX%s*=%s*%d+") or "?")'}))

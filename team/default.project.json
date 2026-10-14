@@ -1,0 +1,153 @@
+{
+  "name": "DragonBlockZ",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "Shared": {
+        "$path": "gameplay/src/ReplicatedStorage/Shared",
+        "TrainingLightingPresets": {
+          "$path": "map/training/TrainingLightingPresets.lua"
+        }
+      },
+      "StoryDialogue": {
+        "$path": "StoryDialogue.lua"
+      },
+      "VFX": {
+        "$className": "Folder",
+        "Android17BarrierVFX": {
+          "$path": "animation/Android17BarrierVFX.lua"
+        },
+        "BeamFX": {
+          "$path": "animation/BeamFX.lua"
+        },
+        "BeamStruggleVFX": {
+          "$path": "animation/BeamStruggleVFX.lua"
+        },
+        "BeastSBCVFX": {
+          "$path": "animation/BeastSBCVFX.lua"
+        },
+        "BigBangAttackVFX": {
+          "$path": "animation/BigBangAttackVFX.lua"
+        },
+        "BlackFriezaVFX": {
+          "$path": "animation/BlackFriezaVFX.lua"
+        },
+        "DeathBallVFX": {
+          "$path": "animation/DeathBallVFX.lua"
+        },
+        "DeathBeamVFX": {
+          "$path": "animation/DeathBeamVFX.lua"
+        },
+        "DestructoDiscVFX": {
+          "$path": "animation/DestructoDiscVFX.lua"
+        },
+        "FinalExplosionVFX": {
+          "$path": "animation/FinalExplosionVFX.lua"
+        },
+        "FinalFlashVFX": {
+          "$path": "animation/FinalFlashVFX.lua"
+        },
+        "FusionVFX": {
+          "$path": "animation/FusionVFX.lua"
+        },
+        "GalickGunVFX": {
+          "$path": "animation/GalickGunVFX.lua"
+        },
+        "InstantTransmissionVFX": {
+          "$path": "animation/InstantTransmissionVFX.lua"
+        },
+        "KamehamehaVFX": {
+          "$path": "animation/KamehamehaVFX.lua"
+        },
+        "MUIRushVFX": {
+          "$path": "animation/MUIRushVFX.lua"
+        },
+        "MoroAbsorbVFX": {
+          "$path": "animation/MoroAbsorbVFX.lua"
+        },
+        "MoroPlanetDrainVFX": {
+          "$path": "animation/MoroPlanetDrainVFX.lua"
+        },
+        "NovaStrikeVFX": {
+          "$path": "animation/NovaStrikeVFX.lua"
+        },
+        "PowerImpactVFX": {
+          "$path": "animation/PowerImpactVFX.lua"
+        },
+        "SpecialBeamCannonVFX": {
+          "$path": "animation/SpecialBeamCannonVFX.lua"
+        },
+        "SpiritBombVFX": {
+          "$path": "animation/SpiritBombVFX.lua"
+        },
+        "TeamComboVFX": {
+          "$path": "animation/TeamComboVFX.lua"
+        },
+        "TimeSkipVFX": {
+          "$path": "animation/TimeSkipVFX.lua"
+        },
+        "TransformationVFX": {
+          "$path": "animation/TransformationVFX.lua"
+        },
+        "VFXCommon": {
+          "$path": "animation/VFXCommon.lua"
+        }
+      },
+      "Poses": {
+        "$className": "Folder",
+        "Shared": {
+          "$path": "animation/poses/Shared.lua"
+        },
+        "PosePlayer": {
+          "$path": "animation/poses/PosePlayer.lua"
+        },
+        "Goku": {
+          "$path": "animation/poses/Goku.lua"
+        },
+        "Vegeta": {
+          "$path": "animation/poses/Vegeta.lua"
+        },
+        "Frieza": {
+          "$path": "animation/poses/Frieza.lua"
+        }
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "RoundManager": {
+        "$path": "gameplay/src/ServerScriptService/RoundManager.server.lua"
+      },
+      "DevSelfTest": {
+        "$path": "gameplay/src/ServerScriptService/DevSelfTest.server.lua"
+      },
+      "V12Boot": {
+        "$path": "gameplay/src/ServerScriptService/V12Boot.server.lua"
+      },
+      "Modules": {
+        "$path": "gameplay/src/ServerScriptService/Modules",
+        "StoryMissions": {
+          "$path": "gameplay/StoryMissions.lua"
+        }
+      },
+      "ArenaDamage": {
+        "$path": "map/ArenaDamage.lua"
+      },
+      "Arena": {
+        "$path": "map/Arena.lua"
+      },
+      "ArtPass": {
+        "$path": "map/ArtPass.lua"
+      },
+      "TrainingAreas": {
+        "$path": "map/training/TrainingAreas.lua"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$path": "gameplay/src/StarterPlayer/StarterPlayerScripts"
+      }
+    }
+  }
+}

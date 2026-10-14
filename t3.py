@@ -1,0 +1,11 @@
+import json,sys,time
+exec(open("install.py",encoding="utf-8").read().split('T=r"team"')[0])
+def L(code,dm="Client"): return call("execute_luau",{"code":code,"datamodel_type":dm})
+print(call("start_stop_play",{"is_start":True})); time.sleep(8)
+print(L('local U=require(game.ReplicatedStorage.Shared.UIKit) local ok,e=pcall(U.shenron,Vector3.new(0,470,-260),170) return tostring(ok).." "..tostring(e).." n="..(ok and #e:GetChildren() or 0)'))
+print(L('local c=workspace.CurrentCamera c.CameraType=Enum.CameraType.Scriptable c.CFrame=CFrame.lookAt(Vector3.new(0,560,160),Vector3.new(0,590,-260)) return "ok"'))
+time.sleep(1)
+print(call("screen_capture",{"camera_position":[0,560,160],"look_at_position":[0,590,-260],"capture_id":"shen_test"}))
+print(call("get_console_output",{}))
+print(call("start_stop_play",{"is_start":False}))
+p.terminate()

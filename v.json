@@ -1,0 +1,1 @@
+{"code":"local w=workspace:FindFirstChild(\"WorldOfVoid\"); return (w and #w:GetDescendants() or -1)..\" parts, ArenaDamage=\"..tostring(game.ServerScriptService:FindFirstChild(\"ArenaDamage\")~=nil)","studio_id":"d783750c-1f37-4381-9f4d-f9dba1040113","datamodel_type":"Edit"}

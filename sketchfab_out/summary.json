@@ -1,0 +1,1341 @@
+[
+{
+"slug": "goku_from_dragon_ball_textured_and_rigge_43d397",
+"cat": "Character",
+"tris_before": 76504,
+"tris_after": 19399,
+"dims": [
+21.24,
+22.12,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\goku_from_dragon_ball_textured_and_rigge_43d397.fbx",
+"rigged_src": true
+},
+{
+"slug": "vegeta_from_dragon_ball_textured_and_rig_41a0b4",
+"cat": "Character",
+"tris_before": 63219,
+"tris_after": 19400,
+"dims": [
+17.71,
+24.07,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\vegeta_from_dragon_ball_textured_and_rig_41a0b4.fbx",
+"rigged_src": true
+},
+{
+"slug": "dragon_ball_z_frieza_a335b7",
+"cat": "Character",
+"tris_before": 6552,
+"tris_after": 6552,
+"dims": [
+5.26,
+6.79,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\dragon_ball_z_frieza_a335b7.fbx",
+"rigged_src": false
+},
+{
+"slug": "frieza_emperor_of_the_universe_84fa59",
+"cat": "Character",
+"tris_before": 25448,
+"tris_after": 19400,
+"dims": [
+12.6,
+80.37,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\frieza_emperor_of_the_universe_84fa59.fbx",
+"rigged_src": true
+},
+{
+"slug": "zeno_sama_omni_king_60ff10",
+"cat": "Character",
+"tris_before": 11316,
+"tris_after": 11236,
+"dims": [
+4.56,
+3.21,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\zeno_sama_omni_king_60ff10.fbx",
+"rigged_src": true
+},
+{
+"slug": "shenron_dragon_ball_96e8ad",
+"cat": "Creature",
+"tris_before": 25028,
+"tris_after": 19399,
+"dims": [
+27.22,
+28.88,
+40.0
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\shenron_dragon_ball_96e8ad.fbx",
+"rigged_src": false
+},
+{
+"slug": "the_dragon_balls_77baeb",
+"cat": "Props",
+"tris_before": 5488,
+"tris_after": 5488,
+"dims": [
+6.7,
+6.57,
+2.0
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\the_dragon_balls_77baeb.fbx",
+"rigged_src": false
+},
+{
+"slug": "potara_earrings_dragon_ball_63cc2a",
+"cat": "Props",
+"tris_before": 6992,
+"tris_after": 6992,
+"dims": [
+2.14,
+0.88,
+2.0
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\potara_earrings_dragon_ball_63cc2a.fbx",
+"rigged_src": false
+},
+{
+"slug": "free_pack_rocks_stylized_7c60b4",
+"cat": "Environment",
+"tris_before": 3076,
+"tris_after": 3076,
+"dims": [
+20.0,
+11.97,
+6.06
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\free_pack_rocks_stylized_7c60b4.fbx",
+"rigged_src": false
+},
+{
+"slug": "low_poly_rocks_9823ec",
+"cat": "Environment",
+"tris_before": 650,
+"tris_after": 650,
+"dims": [
+20.0,
+19.34,
+9.43
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\low_poly_rocks_9823ec.fbx",
+"rigged_src": false
+},
+{
+"slug": "rocks_set2_62ab17",
+"cat": "Environment",
+"tris_before": 40041,
+"tris_after": 9700,
+"dims": [
+20.0,
+20.0,
+4.51
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\rocks_set2_62ab17.fbx",
+"rigged_src": false
+},
+{
+"slug": "altar_ruins_189d92",
+"cat": "Environment",
+"tris_before": 12328,
+"tris_after": 9700,
+"dims": [
+20.0,
+11.84,
+2.45
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\altar_ruins_189d92.fbx",
+"rigged_src": false
+},
+{
+"slug": "ancient_ruins_105c85",
+"cat": "Environment",
+"tris_before": 2090,
+"tris_after": 2090,
+"dims": [
+20.0,
+16.33,
+10.36
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\ancient_ruins_105c85.fbx",
+"rigged_src": false
+},
+{
+"slug": "free_skybox_space_nebula_fa5c19",
+"cat": "Environment",
+"tris_before": 3968,
+"tris_after": 3968,
+"dims": [
+20.0,
+20.0,
+20.0
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\free_skybox_space_nebula_fa5c19.fbx",
+"rigged_src": false
+},
+{
+"slug": "throne_bfc6d2",
+"cat": "Props",
+"tris_before": 11556,
+"tris_after": 9699,
+"dims": [
+0.65,
+0.93,
+2.0
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\throne_bfc6d2.fbx",
+"rigged_src": false
+},
+{
+"slug": "dragon_ball_z_vegeta_1c2513",
+"cat": "Character",
+"tris_before": 3500,
+"tris_after": 3500,
+"dims": [
+4.87,
+1.37,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\dragon_ball_z_vegeta_1c2513.fbx",
+"rigged_src": false
+},
+{
+"slug": "goku_rigged_animated_3ed060",
+"cat": "Character",
+"tris_before": 2512,
+"tris_after": 2432,
+"dims": [
+4.99,
+1.48,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\goku_rigged_animated_3ed060.fbx",
+"rigged_src": true
+},
+{
+"slug": "golden_frieza_315f9a",
+"cat": "Character",
+"tris_before": 572,
+"tris_after": 572,
+"dims": [
+10.0,
+10.0,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\golden_frieza_315f9a.fbx",
+"rigged_src": false
+},
+{
+"slug": "android_17_2a639c",
+"cat": "Character",
+"tris_before": 5260,
+"tris_after": 5260,
+"dims": [
+1.83,
+1.22,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\android_17_2a639c.fbx",
+"rigged_src": false
+},
+{
+"slug": "android_18_dbz_f2c5f2",
+"cat": "Character",
+"tris_before": 51451,
+"tris_after": 19400,
+"dims": [
+3.85,
+2.03,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\android_18_dbz_f2c5f2.fbx",
+"rigged_src": false
+},
+{
+"slug": "android_19_3f74e4",
+"cat": "Character",
+"tris_before": 13952,
+"tris_after": 13872,
+"dims": [
+6.09,
+1.69,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\android_19_3f74e4.fbx",
+"rigged_src": true
+},
+{
+"slug": "android_21_chibi_169dfa",
+"cat": "Character",
+"tris_before": 8608,
+"tris_after": 8608,
+"dims": [
+3.66,
+3.4,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\android_21_chibi_169dfa.fbx",
+"rigged_src": false
+},
+{
+"slug": "beast_gohan_b01f73",
+"cat": "Character",
+"tris_before": 31745,
+"tris_after": 19400,
+"dims": [
+4.9,
+2.12,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\beast_gohan_b01f73.fbx",
+"rigged_src": false
+},
+{
+"slug": "broly_super_saiyan_3_f1784e",
+"cat": "Character",
+"tris_before": 6524,
+"tris_after": 6524,
+"dims": [
+5.88,
+2.56,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\broly_super_saiyan_3_f1784e.fbx",
+"rigged_src": false
+},
+{
+"slug": "broly_super_saiyan_9c482f",
+"cat": "Character",
+"tris_before": 1494,
+"tris_after": 1494,
+"dims": [
+6.33,
+1.58,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\broly_super_saiyan_9c482f.fbx",
+"rigged_src": false
+},
+{
+"slug": "bulma_low_poly_preview_24500d",
+"cat": "Character",
+"tris_before": 5824,
+"tris_after": 5824,
+"dims": [
+4.74,
+1.53,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\bulma_low_poly_preview_24500d.fbx",
+"rigged_src": false
+},
+{
+"slug": "bulma_v2_10d396",
+"cat": "Character",
+"tris_before": 17372,
+"tris_after": 17292,
+"dims": [
+0.34,
+0.29,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\bulma_v2_10d396.fbx",
+"rigged_src": true
+},
+{
+"slug": "capsule_corp_adc950",
+"cat": "Environment",
+"tris_before": 16090,
+"tris_after": 9699,
+"dims": [
+19.88,
+20.0,
+16.7
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\capsule_corp_adc950.fbx",
+"rigged_src": false
+},
+{
+"slug": "capsule_corporation_spaceship_low_poly_f_3ca2d8",
+"cat": "Environment",
+"tris_before": 20790,
+"tris_after": 9700,
+"dims": [
+20.0,
+19.52,
+8.92
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\capsule_corporation_spaceship_low_poly_f_3ca2d8.fbx",
+"rigged_src": false
+},
+{
+"slug": "cublosion_79ab69",
+"cat": "Character",
+"tris_before": 2612,
+"tris_after": 2612,
+"dims": [
+77.72,
+77.72,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\cublosion_79ab69.fbx",
+"rigged_src": false
+},
+{
+"slug": "demon_king_gomah_dragon_ball_daima_05d952",
+"cat": "Character",
+"tris_before": 8536,
+"tris_after": 8536,
+"dims": [
+5.3,
+4.37,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\demon_king_gomah_dragon_ball_daima_05d952.fbx",
+"rigged_src": false
+},
+{
+"slug": "dragon_ball_goku_super_sayayin_a4fbdb",
+"cat": "Character",
+"tris_before": 73119,
+"tris_after": 19400,
+"dims": [
+3.88,
+1.72,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\dragon_ball_goku_super_sayayin_a4fbdb.fbx",
+"rigged_src": false
+},
+{
+"slug": "dragon_ball_kid_goku_06eb27",
+"cat": "Character",
+"tris_before": 2302,
+"tris_after": 2302,
+"dims": [
+3.81,
+6.66,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\dragon_ball_kid_goku_06eb27.fbx",
+"rigged_src": false
+},
+{
+"slug": "dragon_ball_master_roshi_04b4f1",
+"cat": "Character",
+"tris_before": 8320,
+"tris_after": 8320,
+"dims": [
+2.36,
+3.62,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\dragon_ball_master_roshi_04b4f1.fbx",
+"rigged_src": false
+},
+{
+"slug": "dragon_ball_radar_540adc",
+"cat": "Props",
+"tris_before": 22016,
+"tris_after": 9699,
+"dims": [
+0.59,
+1.59,
+2.0
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\dragon_ball_radar_540adc.fbx",
+"rigged_src": false
+},
+{
+"slug": "dragon_ball_vegeta_64400d",
+"cat": "Character",
+"tris_before": 76966,
+"tris_after": 19399,
+"dims": [
+3.59,
+3.59,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\dragon_ball_vegeta_64400d.fbx",
+"rigged_src": false
+},
+{
+"slug": "dragon_ball_z_baby_goku_a72709",
+"cat": "Character",
+"tris_before": 2523,
+"tris_after": 2523,
+"dims": [
+4.4,
+3.92,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\dragon_ball_z_baby_goku_a72709.fbx",
+"rigged_src": false
+},
+{
+"slug": "dragon_ball_z_gotenks_1b3f76",
+"cat": "Character",
+"tris_before": 2040,
+"tris_after": 2040,
+"dims": [
+4.59,
+1.53,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\dragon_ball_z_gotenks_1b3f76.fbx",
+"rigged_src": false
+},
+{
+"slug": "dragon_ball_z_kid_goku_acd074",
+"cat": "Character",
+"tris_before": 2751,
+"tris_after": 2751,
+"dims": [
+4.72,
+7.08,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\dragon_ball_z_kid_goku_acd074.fbx",
+"rigged_src": false
+},
+{
+"slug": "dragon_ball_z_krillin_2e7a69",
+"cat": "Character",
+"tris_before": 2503,
+"tris_after": 2503,
+"dims": [
+5.21,
+1.2,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\dragon_ball_z_krillin_2e7a69.fbx",
+"rigged_src": false
+},
+{
+"slug": "dragon_ball_z_piccolo_1bcf92",
+"cat": "Character",
+"tris_before": 3620,
+"tris_after": 3620,
+"dims": [
+5.69,
+1.33,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\dragon_ball_z_piccolo_1bcf92.fbx",
+"rigged_src": false
+},
+{
+"slug": "dragon_ball_z_super_saiyan_vegeta_2c049d",
+"cat": "Character",
+"tris_before": 4410,
+"tris_after": 4410,
+"dims": [
+2.17,
+1.99,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\dragon_ball_z_super_saiyan_vegeta_2c049d.fbx",
+"rigged_src": false
+},
+{
+"slug": "dragon_ball_z_tien_119f29",
+"cat": "Character",
+"tris_before": 4943,
+"tris_after": 4943,
+"dims": [
+2.43,
+1.12,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\dragon_ball_z_tien_119f29.fbx",
+"rigged_src": false
+},
+{
+"slug": "dragon_ball_z_trunks_cc9e11",
+"cat": "Character",
+"tris_before": 4505,
+"tris_after": 4505,
+"dims": [
+2.12,
+1.34,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\dragon_ball_z_trunks_cc9e11.fbx",
+"rigged_src": false
+},
+{
+"slug": "dragon_ball_zbroly_eafcd3",
+"cat": "Character",
+"tris_before": 6060,
+"tris_after": 6060,
+"dims": [
+2.69,
+1.71,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\dragon_ball_zbroly_eafcd3.fbx",
+"rigged_src": false
+},
+{
+"slug": "dragon_radar_dragon_ball_a49b8b",
+"cat": "Props",
+"tris_before": 1566,
+"tris_after": 1566,
+"dims": [
+1.76,
+0.55,
+2.0
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\dragon_radar_dragon_ball_a49b8b.fbx",
+"rigged_src": false
+},
+{
+"slug": "dragon_radar_fbd162",
+"cat": "Props",
+"tris_before": 10112,
+"tris_after": 9699,
+"dims": [
+19.67,
+21.68,
+2.0
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\dragon_radar_fbd162.fbx",
+"rigged_src": false
+},
+{
+"slug": "fat_majin_buu_34c553",
+"cat": "Character",
+"tris_before": 10106,
+"tris_after": 10106,
+"dims": [
+3.26,
+3.44,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\fat_majin_buu_34c553.fbx",
+"rigged_src": false
+},
+{
+"slug": "fighting_dragon_ball_z_warrior_e85db0",
+"cat": "Character",
+"tris_before": 46123,
+"tris_after": 19400,
+"dims": [
+3.14,
+2.64,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\fighting_dragon_ball_z_warrior_e85db0.fbx",
+"rigged_src": true
+},
+{
+"slug": "freezer_final_form_ed2a69",
+"cat": "Character",
+"tris_before": 58824,
+"tris_after": 19400,
+"dims": [
+3.4,
+3.08,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\freezer_final_form_ed2a69.fbx",
+"rigged_src": true
+},
+{
+"slug": "gogeta_ssj4_remade_998352",
+"cat": "Character",
+"tris_before": 21507,
+"tris_after": 19399,
+"dims": [
+5.24,
+2.29,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\gogeta_ssj4_remade_998352.fbx",
+"rigged_src": false
+},
+{
+"slug": "gohan_43d67f",
+"cat": "Character",
+"tris_before": 2531,
+"tris_after": 2451,
+"dims": [
+4.86,
+1.27,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\gohan_43d67f.fbx",
+"rigged_src": true
+},
+{
+"slug": "gohan_70a9fc",
+"cat": "Character",
+"tris_before": 4556,
+"tris_after": 4556,
+"dims": [
+2.29,
+1.55,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\gohan_70a9fc.fbx",
+"rigged_src": false
+},
+{
+"slug": "gohan_adolecente_943213",
+"cat": "Character",
+"tris_before": 19723,
+"tris_after": 19723,
+"dims": [
+4.26,
+1.64,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\gohan_adolecente_943213.fbx",
+"rigged_src": false
+},
+{
+"slug": "gohan_super_saiyan_8a133b",
+"cat": "Character",
+"tris_before": 4568,
+"tris_after": 4568,
+"dims": [
+2.22,
+1.33,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\gohan_super_saiyan_8a133b.fbx",
+"rigged_src": false
+},
+{
+"slug": "goku_1b2295",
+"cat": "Character",
+"tris_before": 3850,
+"tris_after": 3770,
+"dims": [
+32.68,
+108.81,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\goku_1b2295.fbx",
+"rigged_src": true
+},
+{
+"slug": "goku_6a79ab",
+"cat": "Character",
+"tris_before": 6384,
+"tris_after": 6384,
+"dims": [
+2.41,
+1.62,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\goku_6a79ab.fbx",
+"rigged_src": false
+},
+{
+"slug": "goku_black_animated_76b37a",
+"cat": "Character",
+"tris_before": 37372,
+"tris_after": 19399,
+"dims": [
+1.58,
+1.3,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\goku_black_animated_76b37a.fbx",
+"rigged_src": true
+},
+{
+"slug": "goku_black_low_poly_character_model_3d_a84937",
+"cat": "Character",
+"tris_before": 2455,
+"tris_after": 2455,
+"dims": [
+3.29,
+0.97,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\goku_black_low_poly_character_model_3d_a84937.fbx",
+"rigged_src": false
+},
+{
+"slug": "goku_black_ssr_low_poly_rigged_model_437daa",
+"cat": "Character",
+"tris_before": 2880,
+"tris_after": 2800,
+"dims": [
+18.57,
+31.05,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\goku_black_ssr_low_poly_rigged_model_437daa.fbx",
+"rigged_src": true
+},
+{
+"slug": "goku_ssj_blue_11659a",
+"cat": "Character",
+"tris_before": 6038,
+"tris_after": 6038,
+"dims": [
+2.37,
+1.19,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\goku_ssj_blue_11659a.fbx",
+"rigged_src": false
+},
+{
+"slug": "goku_ssj_blue_e4f2ec",
+"cat": "Character",
+"tris_before": 18480,
+"tris_after": 18480,
+"dims": [
+5.05,
+1.44,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\goku_ssj_blue_e4f2ec.fbx",
+"rigged_src": false
+},
+{
+"slug": "goku_ssj_god_2f6010",
+"cat": "Character",
+"tris_before": 4614,
+"tris_after": 4614,
+"dims": [
+4.09,
+1.48,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\goku_ssj_god_2f6010.fbx",
+"rigged_src": false
+},
+{
+"slug": "goku_super_saiyan_c2cff8",
+"cat": "Character",
+"tris_before": 5126,
+"tris_after": 5126,
+"dims": [
+2.25,
+2.82,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\goku_super_saiyan_c2cff8.fbx",
+"rigged_src": false
+},
+{
+"slug": "goku_ultra_instinct_3bf8a4",
+"cat": "Character",
+"tris_before": 24100,
+"tris_after": 19399,
+"dims": [
+5.22,
+1.05,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\goku_ultra_instinct_3bf8a4.fbx",
+"rigged_src": true
+},
+{
+"slug": "heavy_metal_shockwave_f11d94",
+"cat": "Environment",
+"tris_before": 33521,
+"tris_after": 9699,
+"dims": [
+15.61,
+19.82,
+20.0
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\heavy_metal_shockwave_f11d94.fbx",
+"rigged_src": true
+},
+{
+"slug": "hit_82ce41",
+"cat": "Character",
+"tris_before": 11268,
+"tris_after": 11268,
+"dims": [
+5.95,
+1.47,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\hit_82ce41.fbx",
+"rigged_src": false
+},
+{
+"slug": "hyperbolic_time_chamber_cdb861",
+"cat": "Environment",
+"tris_before": 4008,
+"tris_after": 4008,
+"dims": [
+20.0,
+18.3,
+4.37
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\hyperbolic_time_chamber_cdb861.fbx",
+"rigged_src": false
+},
+{
+"slug": "hyperbolic_time_chamber_ef6155",
+"cat": "Environment",
+"tris_before": 2303,
+"tris_after": 2303,
+"dims": [
+20.0,
+5.5,
+11.69
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\hyperbolic_time_chamber_ef6155.fbx",
+"rigged_src": false
+},
+{
+"slug": "inside_galaxy_skybox_hdri_360_panorama_96183e",
+"cat": "Environment",
+"tris_before": 960,
+"tris_after": 960,
+"dims": [
+20.0,
+20.0,
+20.0
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\inside_galaxy_skybox_hdri_360_panorama_96183e.fbx",
+"rigged_src": false
+},
+{
+"slug": "jiren_a61c71",
+"cat": "Character",
+"tris_before": 15444,
+"tris_after": 15444,
+"dims": [
+6.33,
+1.3,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\jiren_a61c71.fbx",
+"rigged_src": false
+},
+{
+"slug": "kaioh_dragon_ball_cd5f0d",
+"cat": "Character",
+"tris_before": 7470,
+"tris_after": 7390,
+"dims": [
+4.58,
+3.69,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\kaioh_dragon_ball_cd5f0d.fbx",
+"rigged_src": true
+},
+{
+"slug": "kame_house_f055f8",
+"cat": "Environment",
+"tris_before": 40456,
+"tris_after": 9700,
+"dims": [
+20.0,
+19.98,
+7.67
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\kame_house_f055f8.fbx",
+"rigged_src": false
+},
+{
+"slug": "kame_sennin_lowpoly_de1210",
+"cat": "Character",
+"tris_before": 5120,
+"tris_after": 5120,
+"dims": [
+6.49,
+3.84,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\kame_sennin_lowpoly_de1210.fbx",
+"rigged_src": false
+},
+{
+"slug": "kamehouse_34d497",
+"cat": "Environment",
+"tris_before": 23119,
+"tris_after": 9699,
+"dims": [
+19.98,
+20.0,
+7.59
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\kamehouse_34d497.fbx",
+"rigged_src": false
+},
+{
+"slug": "kefla_dragon_ball_super_04eac3",
+"cat": "Character",
+"tris_before": 73715,
+"tris_after": 19400,
+"dims": [
+4.77,
+1.82,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\kefla_dragon_ball_super_04eac3.fbx",
+"rigged_src": true
+},
+{
+"slug": "kid_buu_a9e9ea",
+"cat": "Character",
+"tris_before": 14213,
+"tris_after": 14133,
+"dims": [
+2.27,
+1.19,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\kid_buu_a9e9ea.fbx",
+"rigged_src": true
+},
+{
+"slug": "kid_gohan_7f1832",
+"cat": "Character",
+"tris_before": 4796,
+"tris_after": 4796,
+"dims": [
+2.1,
+1.82,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\kid_gohan_7f1832.fbx",
+"rigged_src": false
+},
+{
+"slug": "lowpoly_anime_character_cyberstyle_9c2845",
+"cat": "Character",
+"tris_before": 58003,
+"tris_after": 19399,
+"dims": [
+24.96,
+26.82,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\lowpoly_anime_character_cyberstyle_9c2845.fbx",
+"rigged_src": true
+},
+{
+"slug": "mafuba_pot_dragon_ball_1692fc",
+"cat": "Props",
+"tris_before": 2750,
+"tris_after": 2750,
+"dims": [
+2.07,
+1.62,
+2.0
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\mafuba_pot_dragon_ball_1692fc.fbx",
+"rigged_src": false
+},
+{
+"slug": "majin_buu_lowpoly_for_game_389328",
+"cat": "Character",
+"tris_before": 2878,
+"tris_after": 2878,
+"dims": [
+5.47,
+1.63,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\majin_buu_lowpoly_for_game_389328.fbx",
+"rigged_src": false
+},
+{
+"slug": "majin_kuu_8837e8",
+"cat": "Character",
+"tris_before": 9942,
+"tris_after": 9942,
+"dims": [
+5.67,
+1.23,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\majin_kuu_8837e8.fbx",
+"rigged_src": false
+},
+{
+"slug": "milky_way_skybox_hdri_panorama_b57711",
+"cat": "Environment",
+"tris_before": 960,
+"tris_after": 960,
+"dims": [
+19.95,
+20.0,
+19.95
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\milky_way_skybox_hdri_panorama_b57711.fbx",
+"rigged_src": false
+},
+{
+"slug": "potara_kefla_ssj_71ef7b",
+"cat": "Props",
+"tris_before": 60000,
+"tris_after": 9700,
+"dims": [
+0.78,
+0.52,
+2.0
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\potara_kefla_ssj_71ef7b.fbx",
+"rigged_src": false
+},
+{
+"slug": "scouter_d2b39d",
+"cat": "Props",
+"tris_before": 13196,
+"tris_after": 9699,
+"dims": [
+1.77,
+2.58,
+2.0
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\scouter_d2b39d.fbx",
+"rigged_src": true
+},
+{
+"slug": "scouter_dragon_ball_14e781",
+"cat": "Props",
+"tris_before": 3174,
+"tris_after": 3174,
+"dims": [
+2.16,
+2.8,
+2.0
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\scouter_dragon_ball_14e781.fbx",
+"rigged_src": false
+},
+{
+"slug": "scouter_dragon_ball_z_a1cd37",
+"cat": "Props",
+"tris_before": 1244,
+"tris_after": 1244,
+"dims": [
+2.27,
+2.91,
+2.0
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\scouter_dragon_ball_z_a1cd37.fbx",
+"rigged_src": false
+},
+{
+"slug": "son_goku_026e34",
+"cat": "Character",
+"tris_before": 7492,
+"tris_after": 7412,
+"dims": [
+19.33,
+21.12,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\son_goku_026e34.fbx",
+"rigged_src": true
+},
+{
+"slug": "son_goku_4f8914",
+"cat": "Character",
+"tris_before": 7716,
+"tris_after": 7636,
+"dims": [
+19.33,
+36.69,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\son_goku_4f8914.fbx",
+"rigged_src": true
+},
+{
+"slug": "son_goku_and_kintoun_nimbus_0e0522",
+"cat": "Character",
+"tris_before": 6447,
+"tris_after": 6447,
+"dims": [
+3.34,
+6.17,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\son_goku_and_kintoun_nimbus_0e0522.fbx",
+"rigged_src": false
+},
+{
+"slug": "sparks_explosion_c73eb2",
+"cat": "Environment",
+"tris_before": 384,
+"tris_after": 384,
+"dims": [
+20.0,
+17.34,
+18.16
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\sparks_explosion_c73eb2.fbx",
+"rigged_src": false
+},
+{
+"slug": "supreme_kai_zamasu_lowpoly_afc409",
+"cat": "Character",
+"tris_before": 9583,
+"tris_after": 9583,
+"dims": [
+4.35,
+1.28,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\supreme_kai_zamasu_lowpoly_afc409.fbx",
+"rigged_src": false
+},
+{
+"slug": "the_saiyajin_vegeta_582b18",
+"cat": "Character",
+"tris_before": 13712,
+"tris_after": 13712,
+"dims": [
+5.08,
+1.5,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\the_saiyajin_vegeta_582b18.fbx",
+"rigged_src": false
+},
+{
+"slug": "training_dummy_3c647d",
+"cat": "Props",
+"tris_before": 3442,
+"tris_after": 3442,
+"dims": [
+1.43,
+1.19,
+2.0
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\training_dummy_3c647d.fbx",
+"rigged_src": false
+},
+{
+"slug": "training_dummy_9465a0",
+"cat": "Props",
+"tris_before": 2446,
+"tris_after": 2446,
+"dims": [
+0.78,
+0.78,
+2.0
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\training_dummy_9465a0.fbx",
+"rigged_src": false
+},
+{
+"slug": "vegeta_mui_ultra_ego_4925b1",
+"cat": "Character",
+"tris_before": 3641,
+"tris_after": 3641,
+"dims": [
+4.86,
+1.2,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\vegeta_mui_ultra_ego_4925b1.fbx",
+"rigged_src": false
+},
+{
+"slug": "vegeta_ssj_god_52eb94",
+"cat": "Character",
+"tris_before": 28334,
+"tris_after": 19400,
+"dims": [
+3.21,
+1.31,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\vegeta_ssj_god_52eb94.fbx",
+"rigged_src": false
+},
+{
+"slug": "vegetto_cf1732",
+"cat": "Character",
+"tris_before": 13343,
+"tris_after": 13343,
+"dims": [
+46.77,
+46.77,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\vegetto_cf1732.fbx",
+"rigged_src": false
+},
+{
+"slug": "vegito_super_saiyan_d5f7ad",
+"cat": "Character",
+"tris_before": 17268,
+"tris_after": 17188,
+"dims": [
+14.1,
+22.6,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\vegito_super_saiyan_d5f7ad.fbx",
+"rigged_src": true
+},
+{
+"slug": "vfx_explosion_724a95",
+"cat": "Environment",
+"tris_before": 48960,
+"tris_after": 9700,
+"dims": [
+20.0,
+19.8,
+19.84
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\vfx_explosion_724a95.fbx",
+"rigged_src": false
+},
+{
+"slug": "whis_staff_265194",
+"cat": "Props",
+"tris_before": 4416,
+"tris_after": 4416,
+"dims": [
+0.61,
+0.29,
+2.0
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\whis_staff_265194.fbx",
+"rigged_src": false
+},
+{
+"slug": "whis_staff_db7334",
+"cat": "Props",
+"tris_before": 2592,
+"tris_after": 2592,
+"dims": [
+0.34,
+0.17,
+2.0
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\whis_staff_db7334.fbx",
+"rigged_src": false
+},
+{
+"slug": "zamasu_e00e98",
+"cat": "Character",
+"tris_before": 19468,
+"tris_after": 19388,
+"dims": [
+6.22,
+149.11,
+5.5
+],
+"fbx": "C:\\Users\\issao\\Documents\\DBTournament\\sketchfab_out\\zamasu_e00e98.fbx",
+"rigged_src": true
+}
+]

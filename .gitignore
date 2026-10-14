@@ -1,0 +1,35 @@
+﻿# Archives & Compressed Files
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.rar
+*.7z
+
+# Logs, Error, and Process files
+*.log
+*.err
+*.pid
+wait.log
+wait.err
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+.env
+
+# Obsidian workspace cache
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+
+# Operating System files
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+.DS_Store

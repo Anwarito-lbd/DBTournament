@@ -1,0 +1,513 @@
+-- ModuleScript: ReplicatedStorage.Shared.CutsceneDirector (v2 story player)
+-- Plays StoryDialogue beat lists: { cam, actors, action, speaker, text, duration, perTeam, then, onEnd, triggersWishChoice }.
+-- Actors come from ReplicatedStorage.CharacterModels[<id>] when present (generated meshes), else UIKit placeholder figures.
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local Lighting = game:GetService("Lighting")
+local CollectionService = game:GetService("CollectionService")
+local UserInputService = game:GetService("UserInputService")
+local UIKit = require(script.Parent:WaitForChild("UIKit"))
+local player = Players.LocalPlayer
+
+local D = {}
+local CENTER = Vector3.new(0, 500, 0)
+local FACE = Vector3.new(0, 0, 1)
+-- Layout is read from the v2 scalable arena (Workspace.WorldOfVoid.Arena attrs + ZenoBox/Spawn_Zeno) on every D.new()
+local SPOTS: { [string]: Vector3 } = {}
+local HEIGHT = { npc_grand_priest = 7.5, npc_zeno = 4, npc_zeno_future = 4, npc_zeno_guard_1 = 9, npc_zeno_guard_2 = 9 }
+local SHENRON_BASE, BALLS_C, BALLS_R, K = Vector3.new(0, 470, -190), Vector3.new(0, 506, -120), 26, 1
+local function readLayout()
+	local wov = workspace:FindFirstChild("WorldOfVoid")
+	local arena = wov and wov:FindFirstChild("Arena")
+	local R = (arena and arena:GetAttribute("Radius") :: number?) or 150
+	K = R / 150
+	local zs = arena and arena:FindFirstChild("ZenoBox") and arena.ZenoBox:FindFirstChild("Spawn_Zeno") :: BasePart?
+	local zcf: CFrame
+	if zs then
+		local pos = zs.Position + Vector3.new(0, 0.5, 0)
+		zcf = CFrame.lookAt(pos, Vector3.new(0, pos.Y, 0))
+	else
+		zcf = CFrame.lookAt(Vector3.new(0, 514, -62), Vector3.new(0, 514, 0))
+	end
+	FACE = zcf.LookVector
+	local function at(x, z) return (zcf * CFrame.new(x, 0, z)).Position end
+	SPOTS = {
+		npc_zeno = at(-6, 2), npc_zeno_future = at(6, 2),
+		npc_zeno_guard_1 = at(-15, 9), npc_zeno_guard_2 = at(15, 9),
+		npc_grand_priest = at(-20, -6),
+	}
+	-- Shenron rises behind the far (-Z) edge of the ring; balls gather on the ring near that edge
+	SHENRON_BASE = Vector3.new(0, 470, -(R + 60))
+	BALLS_C, BALLS_R = Vector3.new(0, 506, -R * 0.55), math.max(26, R * 0.17)
+end
+
+local function anchorAll(m: Instance)
+	for _, d in m:GetDescendants() do
+		if d:IsA("BasePart") then d.Anchored = true; d.CanCollide = false; d.CanQuery = false; d.CanTouch = false end
+	end
+end
+
+local function fromLibrary(id: string): Model?
+	local lib = ReplicatedStorage:FindFirstChild("CharacterModels")
+	if not lib then return nil end
+	local ALIAS = { npc_zeno_future = "npc_zeno" }
+	local src = lib:FindFirstChild(id) or (ALIAS[id] and lib:FindFirstChild(ALIAS[id])) or lib:FindFirstChild((string.gsub(id, "_%d+$", "")))
+	if not src then return nil end
+	local m: Model
+	if src:IsA("Model") then m = src:Clone() else m = Instance.new("Model"); src:Clone().Parent = m end
+	anchorAll(m)
+	return m
+end
+
+-- place model so its feet sit at pos, facing dir, scaled to height h
+local function stand(m: Model, pos: Vector3, h: number, dir: Vector3?)
+	local _, size = m:GetBoundingBox()
+	if size.Y > 0 then pcall(function() m:ScaleTo(m:GetScale() * h / size.Y) end) end
+	local cf, sz = m:GetBoundingBox()
+	local offset = m:GetPivot():ToObjectSpace(cf)
+	local want = CFrame.lookAt(pos + Vector3.new(0, sz.Y / 2, 0), pos + Vector3.new(0, sz.Y / 2, 0) + (dir or FACE))
+	m:PivotTo(want * offset:Inverse())
+end
+
+local FALLBACK_KIND = { npc_grand_priest = "GrandPriest", npc_zeno = "Zeno", npc_zeno_future = "FutureZeno" }
+
+-- v3 (db-story): universe stand position (StandSpawn tags, Universe = "U07"), fallback: ring of stands around the arena
+local function standPos(u: number?): Vector3
+	local sum, n = Vector3.zero, 0
+	if u then
+		local tag = string.format("U%02d", u)
+		for _, inst in CollectionService:GetTagged("StandSpawn") do
+			if inst:IsA("BasePart") and inst:IsDescendantOf(workspace) and inst:GetAttribute("Universe") == tag then sum += inst.Position; n += 1 end
+		end
+	end
+	if n > 0 then return sum / n end
+	local a = math.rad(((u or 1) - 1) * 30)
+	return CENTER + Vector3.new(math.cos(a) * 230 * K, 30, math.sin(a) * 230 * K)
+end
+local function findBoss(name: string?): Model?
+	local wov = workspace:FindFirstChild("WorldOfVoid") or workspace
+	local m = wov:FindFirstChild(name or "Jiren", true)
+	return if m and m:IsA("Model") then m else nil
+end
+
+function D.new()
+	readLayout()
+	local self = { actors = {} :: { [string]: Model }, conns = {}, fx = {} :: { Instance }, vars = {} :: { [string]: any } }
+
+	local function guard(id: string, pos: Vector3): Model
+		local m = Instance.new("Model"); m.Name = "Story_" .. id
+		local purple, white = Color3.fromRGB(110, 50, 170), Color3.fromRGB(235, 235, 245)
+		local function p(n, s, off, c, mat)
+			local x = Instance.new("Part"); x.Name = n; x.Size = s; x.CFrame = CFrame.lookAt(pos + off, pos + off + FACE); x.Color = c
+			x.Material = mat or Enum.Material.SmoothPlastic; x.Parent = m; return x
+		end
+		p("Legs", Vector3.new(2, 4, 1.2), Vector3.new(0, 2, 0), purple)
+		p("Torso", Vector3.new(2.8, 3, 1.5), Vector3.new(0, 5.5, 0), white, Enum.Material.Foil)
+		p("Pauldrons", Vector3.new(4.2, 0.8, 1.7), Vector3.new(0, 7, 0), purple, Enum.Material.Foil)
+		local h = p("Head", Vector3.new(1.4, 1.6, 1.4), Vector3.new(0, 8, 0), Color3.fromRGB(190, 190, 220))
+		p("Helmet", Vector3.new(1.6, 1.4, 1.6), Vector3.new(0, 9.2, 0), purple, Enum.Material.Foil)
+		anchorAll(m); m.PrimaryPart = h; m.Parent = workspace; return m
+	end
+
+	local function balls(): Model
+		local m = Instance.new("Model"); m.Name = "Story_super_dragon_balls"
+		for i = 1, 7 do
+			local a = math.rad(-90 + (i - 4) * 24)
+			local pos = BALLS_C + Vector3.new(math.cos(a) * BALLS_R * 2, 0, math.sin(a) * BALLS_R)
+			local b = fromLibrary("super_dragon_ball")
+			if b then
+				stand(b, pos, 9); b.Name = "Ball" .. i; b.Parent = m
+			else
+				local x = Instance.new("Part"); x.Name = "Ball" .. i; x.Shape = Enum.PartType.Ball; x.Size = Vector3.one * 9
+				x.Material = Enum.Material.Glass; x.Color = Color3.fromRGB(255, 170, 30); x.Transparency = 0.15
+				x.CFrame = CFrame.new(pos + Vector3.new(0, 4.5, 0)); x.Parent = m
+				local s = Instance.new("Part"); s.Name = "Star"; s.Shape = Enum.PartType.Ball; s.Size = Vector3.one * 2.2
+				s.Material = Enum.Material.Neon; s.Color = Color3.fromRGB(230, 30, 30); s.CFrame = x.CFrame; s.Parent = m
+			end
+		end
+		for _, d in m:GetDescendants() do if d:IsA("BasePart") then
+			local l = Instance.new("PointLight"); l.Color = Color3.fromRGB(255, 190, 80); l.Range = 14; l.Brightness = 1.5; l.Parent = d; break end end
+		anchorAll(m); m.Parent = workspace; return m
+	end
+
+	local function shenron(): Model
+		local m = fromLibrary("npc_shenron")
+		if m then
+			stand(m, SHENRON_BASE, 170, Vector3.new(0, 0, 1)); m.Name = "Story_npc_shenron"
+			for _, d in m:GetDescendants() do if d:IsA("BasePart") then
+				local l = Instance.new("PointLight"); l.Color = Color3.fromRGB(255, 200, 90); l.Range = 60; l.Brightness = 2; l.Parent = d; break end end
+			m.Parent = workspace
+			return m
+		end
+		return UIKit.shenron(SHENRON_BASE, 170)
+	end
+
+	function self.actor(id: string): Model?
+		if self.actors[id] then return self.actors[id] end
+		local m: Model?
+		if id == "super_dragon_balls" then m = balls()
+		elseif id == "npc_shenron" then m = shenron()
+		elseif SPOTS[id] then
+			m = fromLibrary(id)
+			if m then stand(m, SPOTS[id], HEIGHT[id]); m.Name = "Story_" .. id; m.Parent = workspace
+			elseif FALLBACK_KIND[id] then m = UIKit.figure(FALLBACK_KIND[id], CFrame.lookAt(SPOTS[id], SPOTS[id] + FACE), 1.3)
+			else m = guard(id, SPOTS[id]) end
+		end
+		if m then self.actors[id] = m end
+		return m
+	end
+
+	local function focus(id: string): Vector3
+		local m = self.actors[id] or self.actor(id)
+		if not m then return CENTER end
+		local cf, size = m:GetBoundingBox()
+		return cf.Position + Vector3.new(0, size.Y * 0.3, 0)
+	end
+	local function myRoot(): BasePart?
+		return player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	end
+	local zenoFlip = false
+
+	self.cams = {
+		VoidEstablishWide = function() return CFrame.lookAt(CENTER + Vector3.new(0, 140, 330) * K, CENTER + Vector3.new(0, 20, -40)), 0.01 end,
+		CraneToRing = function() return CFrame.lookAt(CENTER + Vector3.new(60, 45, 120) * K, CENTER), 4 end,
+		PriestMedium = function() local h = focus("npc_grand_priest"); return CFrame.lookAt(h + FACE * 15 + FACE:Cross(Vector3.yAxis) * 6 + Vector3.new(0, 1, 0), h), 1.2 end,
+		PriestPushIn = function() local h = focus("npc_grand_priest"); return CFrame.lookAt(h + FACE * 8 + Vector3.new(0, 0.5, 0), h), 3 end,
+		ThroneLowAngle = function()
+			local z = (focus("npc_zeno") + focus("npc_zeno_future")) / 2
+			return CFrame.lookAt(z - FACE * 30 + Vector3.new(0, -5, 0), z + Vector3.new(0, 3, 0)), 1.5 end, -- Zeno models face -FACE visually: camera on their front side
+		ZenoTwoShot = function(beat)
+			local z = (focus("npc_zeno") + focus("npc_zeno_future")) / 2
+			zenoFlip = not zenoFlip
+			local right = FACE:Cross(Vector3.yAxis)
+			local side = if beat.speaker == "npc_zeno" then -2 elseif beat.speaker == "npc_zeno_future" then 2 else 0
+			return CFrame.lookAt(z - FACE * 27 - right * side * 0.5 + Vector3.new(0, 3, 0), z + right * side * 0.4 + Vector3.new(0, 1.5, 0)), 0.8 end, -- faces the Zenos; pulled back so both guards are fully framed
+		RingEdgeTrack = function() return CFrame.lookAt(CENTER + Vector3.new(-120, 12, 90) * K, CENTER + Vector3.new(0, 0, -30)), 6 end,
+		StandsPan = function() return CFrame.lookAt(CENTER + Vector3.new(0, 60, 40) * K, CENTER + Vector3.new(200, 30, 0) * K), 4 end,
+		FighterCuts = function()
+			local r = myRoot()
+			if r then return CFrame.lookAt(r.Position + r.CFrame.LookVector * 14 + Vector3.new(0, 4, 0), r.Position + Vector3.new(0, 2, 0)), 1 end
+			return CFrame.lookAt(CENTER + Vector3.new(160, 90, 160), CENTER), 1 end,
+		OverheadCountdown = function() return CFrame.lookAt(CENTER + Vector3.new(0, 220, 30) * K, CENTER), 2 end,
+		WinnersWide = function() return CFrame.lookAt(CENTER + Vector3.new(0, 40, 110) * K, CENTER + Vector3.new(0, 10, -40)), 1.5 end,
+		SkyWide = function() return CFrame.lookAt(BALLS_C + Vector3.new(0, 30, 150), BALLS_C + Vector3.new(0, 60, -60)), 2 end,
+		StageLowAngle = function() return CFrame.lookAt(BALLS_C + Vector3.new(0, 2, 60), BALLS_C + Vector3.new(0, 18, -20)), 1.5 end,
+		ShenronCraneReveal = function()
+			local m = self.actor("npc_shenron"); local cf, size = (m :: Model):GetBoundingBox()
+			local h = math.max(size.Y, size.X * 0.6); local fov = math.rad(workspace.CurrentCamera.FieldOfView)
+			local dist = (h * 0.62) / math.tan(fov / 2) + size.Z * 0.5
+			return CFrame.lookAt(cf.Position + Vector3.new(0, -h * 0.12, dist), cf.Position + Vector3.new(0, h * 0.04, 0)), 5 end,
+		ShenronExtremeLow = function()
+			local m = self.actor("npc_shenron"); local cf, size = (m :: Model):GetBoundingBox()
+			local top = cf.Position + Vector3.new(0, size.Y * 0.35, 0)
+			return CFrame.lookAt(BALLS_C + Vector3.new(0, 1, 40), top), 1.5 end,
+		LeaderOTS = function()
+			local r = myRoot(); local s = focus("npc_shenron")
+			if r then return CFrame.lookAt(r.Position + Vector3.new(3, 4, 10), s), 1.2 end
+			return CFrame.lookAt(BALLS_C + Vector3.new(0, 4, 60), s), 1.2 end,
+		-- v3 (db-story): Zeno erase + Universe Survival cams
+		ErasedStandWide = function()
+			local s = standPos(tonumber(self.vars.universeN))
+			local dir = (s - CENTER) * Vector3.new(1, 0, 1)
+			if dir.Magnitude < 1 then dir = Vector3.new(0, 0, 1) end
+			return CFrame.lookAt(s - dir.Unit * 70 + Vector3.new(0, 25, 0), s), 1.2 end,
+		BossSkyDrop = function()
+			local b = findBoss(self.vars.boss)
+			local at = if b then b:GetPivot().Position else CENTER + Vector3.new(0, 6, 0)
+			return CFrame.lookAt(at + Vector3.new(0, 30, 70) * K, at + Vector3.new(0, 20, 0)), 1 end,
+		BossCloseUp = function()
+			local b = findBoss(self.vars.boss)
+			if not b then return CFrame.lookAt(CENTER + Vector3.new(0, 15, 40), CENTER + Vector3.new(0, 8, 0)), 1 end
+			local cf, size = b:GetBoundingBox()
+			local head = cf.Position + Vector3.new(0, size.Y * 0.3, 0)
+			return CFrame.lookAt(head + cf.LookVector * 14 + Vector3.new(0, -1.5, 0), head), 1.4 end,
+	}
+
+	local function tween(inst: Instance, t: number, props: any, style: Enum.EasingStyle?, rev: boolean?, rep: number?)
+		local tw = TweenService:Create(inst, TweenInfo.new(t, style or Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, rep or 0, rev or false), props)
+		tw:Play(); return tw
+	end
+	local function hop(id: string, height: number, times: number, period: number)
+		local m = self.actors[id]; if not m then return end
+		task.spawn(function()
+			local base = m:GetPivot()
+			for _ = 1, times do
+				for i = 0, 10 do
+					if not m.Parent then return end
+					m:PivotTo(base + Vector3.new(0, math.sin(i / 10 * math.pi) * height, 0)); task.wait(period / 10)
+				end
+			end
+			m:PivotTo(base)
+		end)
+	end
+	local function wobble(id: string, deg: number, times: number)
+		local m = self.actors[id]; if not m then return end
+		task.spawn(function()
+			local base = m:GetPivot()
+			for i = 0, times * 8 do
+				if not m.Parent then return end
+				m:PivotTo(base * CFrame.Angles(0, 0, math.rad(math.sin(i / 8 * math.pi * 2) * deg))); task.wait(0.05)
+			end
+			m:PivotTo(base)
+		end)
+	end
+	local function addFx(i: Instance) table.insert(self.fx, i); return i end
+
+	self.actions = {
+		Bow = function(beat) local m = self.actors.npc_grand_priest; if m then local b = m:GetPivot()
+			m:PivotTo(b * CFrame.Angles(math.rad(-20), 0, 0)); task.delay(1.5, function() if m.Parent then m:PivotTo(b) end end) end end,
+		ZenoArrive_GuardsBehind = function()
+			for _, id in { "npc_zeno", "npc_zeno_future" } do
+				local m = self.actors[id]; if m then local b = m:GetPivot(); m:PivotTo(b + Vector3.new(0, 12, 0))
+					task.spawn(function() for i = 1, 20 do if not m.Parent then return end; m:PivotTo(b + Vector3.new(0, 12 * (1 - i / 20), 0)); task.wait(0.06) end end) end
+			end
+			for _, id in { "npc_zeno_guard_1", "npc_zeno_guard_2" } do
+				local m = self.actors[id]; if m then local b = m:GetPivot(); m:PivotTo(b + Vector3.new(0, -12, 0))
+					task.delay(1.4, function() for i = 1, 20 do if not m.Parent then return end; m:PivotTo(b + Vector3.new(0, -12 * (1 - i / 20), 0)); task.wait(0.05) end end) end
+			end
+		end,
+		Wave = function(beat) wobble(beat.speaker, 12, 3) end,
+		Bounce = function(beat) hop(beat.speaker, 1.5, 3, 0.45) end,
+		Clap = function(beat) hop(beat.speaker, 0.8, 4, 0.3); wobble(beat.speaker, 6, 2) end,
+		RingGlow = function()
+			local ring = workspace:FindFirstChild("WorldOfVoid")
+			local p = Instance.new("Part"); p.Shape = Enum.PartType.Cylinder; p.Anchored = true; p.CanCollide = false; p.CanQuery = false
+			p.Size = Vector3.new(0.4, 300 * K + 6, 300 * K + 6); p.CFrame = CFrame.new(CENTER + Vector3.new(0, 0.4, 0)) * CFrame.Angles(0, 0, math.rad(90))
+			p.Material = Enum.Material.Neon; p.Color = Color3.fromRGB(140, 200, 255); p.Transparency = 1; p.Parent = ring or workspace
+			addFx(p); tween(p, 1.5, { Transparency = 0.75 }, nil, true, 3)
+		end,
+		GodsKaisWatch = function() end, -- stand banners already show Universe numbers; subtitle carries the line
+		TeleportTeams = function() end, -- server teleports teams during Intro state
+		Countdown321 = function() end,
+		SkyDark_BallsGather = function()
+			local cc = addFx(Instance.new("ColorCorrectionEffect")) :: ColorCorrectionEffect
+			cc.Name = "StorySky"; cc.Parent = Lighting
+			tween(cc, 4, { Brightness = -0.25, Contrast = 0.2, TintColor = Color3.fromRGB(190, 170, 210) })
+			local m = self.actor("super_dragon_balls"); if not m then return end
+			for _, c in m:GetChildren() do
+				local b = c :: any; local base = if c:IsA("Model") then c:GetPivot() else (c :: BasePart).CFrame
+				local start = base + Vector3.new(math.random(-80, 80), 120, math.random(-60, 0))
+				task.spawn(function()
+					for i = 0, 30 do
+						if not c.Parent then return end
+						local cf = start:Lerp(base, i / 30)
+						if c:IsA("Model") then c:PivotTo(cf) else b.CFrame = cf end
+						task.wait(0.12)
+					end
+				end)
+			end
+		end,
+		BallsFlare = function()
+			local m = self.actors.super_dragon_balls; if not m then return end
+			for _, l in m:GetDescendants() do if l:IsA("PointLight") then tween(l, 1, { Brightness = 8, Range = 40 }, nil, true, 2) end end
+			for _, p in m:GetDescendants() do if p:IsA("BasePart") and p.Name == "Star" then tween(p, 0.6, { Size = Vector3.one * 4 }, nil, true, 4) end end
+		end,
+		RiseGold_RedEyes = function()
+			local m = self.actor("npc_shenron"); if not m then return end
+			local b = m:GetPivot(); m:PivotTo(b + Vector3.new(0, -160, 0))
+			task.spawn(function() for i = 1, 40 do if not m.Parent then return end; m:PivotTo(b + Vector3.new(0, -160 * (1 - i / 40) ^ 2, 0)); task.wait(0.1) end end)
+			local cf, size = m:GetBoundingBox()
+			for _, x in { -1, 1 } do
+				local e = Instance.new("Part"); e.Name = "RedEye"; e.Shape = Enum.PartType.Ball; e.Anchored = true; e.CanCollide = false; e.CanQuery = false
+				e.Material = Enum.Material.Neon; e.Color = Color3.fromRGB(255, 20, 20); e.Size = Vector3.one * 0.1
+				e.CFrame = cf * CFrame.new(x * size.X * 0.04, size.Y * 0.42, size.Z * 0.45); e.Parent = m
+				task.delay(3.5, function() tween(e, 1, { Size = Vector3.one * 5 }) end)
+			end
+		end,
+		CameraShake = function()
+			task.spawn(function()
+				local cam = workspace.CurrentCamera
+				for i = 1, 40 do
+					cam.CFrame = cam.CFrame * CFrame.new(math.random(-10, 10) / 25, math.random(-10, 10) / 25, 0); task.wait(0.03)
+				end
+			end)
+		end,
+		ShenronDissolve_BallsScatter = function()
+			local s = self.actors.npc_shenron
+			if s then for _, p in s:GetDescendants() do if p:IsA("BasePart") then tween(p, 3, { Transparency = 1 }) end end end
+			local m = self.actors.super_dragon_balls
+			if m then for _, c in m:GetChildren() do
+				local target = (if c:IsA("Model") then c:GetPivot() else (c :: BasePart).CFrame) + Vector3.new(math.random(-300, 300), 250, math.random(-300, 300))
+				if c:IsA("BasePart") then tween(c, 2.5, { CFrame = target, Transparency = 1 }, Enum.EasingStyle.Quad)
+				elseif c:IsA("Model") then task.spawn(function() local b = c:GetPivot() for i = 1, 25 do if not c.Parent then return end; c:PivotTo(b:Lerp(target, i / 25)); task.wait(0.1) end end) end
+			end end
+		end,
+		-- v3 (db-story): both Zenos raise their hands (arms if the model has them, else a lift + glow)
+		ZenosRaiseHands = function()
+			for _, id in { "npc_zeno", "npc_zeno_future" } do
+				local m = self.actors[id]; if not m then continue end
+				local raised = false
+				for _, n in { "ArmL", "ArmR", "LeftUpperArm", "RightUpperArm" } do
+					local a = m:FindFirstChild(n, true)
+					if a and a:IsA("BasePart") then
+						raised = true
+						tween(a, 0.6, { CFrame = a.CFrame * CFrame.new(0, a.Size.Y * 0.6, 0) * CFrame.Angles(0, 0, math.rad(if n == "ArmL" or n == "LeftUpperArm" then -20 else 20)) })
+					end
+				end
+				if not raised then hop(id, 1.2, 1, 0.8) end
+				local cf, size = m:GetBoundingBox()
+				local g = Instance.new("Part"); g.Shape = Enum.PartType.Ball; g.Anchored = true; g.CanCollide = false; g.CanQuery = false
+				g.Material = Enum.Material.Neon; g.Color = Color3.fromRGB(220, 200, 255); g.Size = Vector3.one * 0.5; g.Transparency = 0.2
+				g.CFrame = cf + Vector3.new(0, size.Y * 0.7, 0); g.Parent = workspace; addFx(g)
+				tween(g, 1.2, { Size = Vector3.one * 3 }, nil, true, 1)
+			end
+		end,
+		-- the losing universe's stand is swallowed by light, then the light fades away
+		StandFadeToLight = function()
+			local s = standPos(tonumber(self.vars.universeN))
+			local orb = Instance.new("Part"); orb.Shape = Enum.PartType.Ball; orb.Anchored = true; orb.CanCollide = false; orb.CanQuery = false; orb.CanTouch = false
+			orb.Material = Enum.Material.Neon; orb.Color = Color3.fromRGB(245, 240, 255); orb.Size = Vector3.one * 2; orb.Transparency = 0.1
+			orb.CFrame = CFrame.new(s); orb.Parent = workspace; addFx(orb)
+			local l = Instance.new("PointLight"); l.Range = 60; l.Brightness = 6; l.Color = Color3.fromRGB(235, 225, 255); l.Parent = orb
+			local cc = addFx(Instance.new("ColorCorrectionEffect")) :: ColorCorrectionEffect
+			cc.Name = "StoryEraseFlash"; cc.Parent = Lighting
+			tween(orb, 1.4, { Size = Vector3.one * 70 * K }, Enum.EasingStyle.Quad)
+			tween(cc, 1.4, { Brightness = 0.35, Saturation = -0.6 })
+			task.delay(1.6, function()
+				if orb.Parent then tween(orb, 1.4, { Transparency = 1, Size = Vector3.one * 90 * K }); tween(l, 1.4, { Brightness = 0 }) end
+				if cc.Parent then tween(cc, 1.4, { Brightness = 0, Saturation = 0 }) end
+			end)
+		end,
+		-- Universe Survival guest fighter drops in with a red pillar of light
+		BossEntrance = function()
+			local b = findBoss(self.vars.boss)
+			local at = if b then b:GetPivot().Position else CENTER
+			local p = Instance.new("Part"); p.Anchored = true; p.CanCollide = false; p.CanQuery = false; p.CanTouch = false
+			p.Material = Enum.Material.Neon; p.Color = Color3.fromRGB(255, 60, 50); p.Size = Vector3.new(400, 14, 14); p.Shape = Enum.PartType.Cylinder
+			p.CFrame = CFrame.new(at + Vector3.new(0, 200, 0)) * CFrame.Angles(0, 0, math.rad(90)); p.Transparency = 0.3; p.Parent = workspace; addFx(p)
+			tween(p, 1.6, { Transparency = 1, Size = Vector3.new(400, 30, 30) })
+			local cc = addFx(Instance.new("ColorCorrectionEffect")) :: ColorCorrectionEffect
+			cc.Name = "StoryBossTint"; cc.Parent = Lighting
+			tween(cc, 0.3, { TintColor = Color3.fromRGB(255, 200, 190), Contrast = 0.25 }, nil, true, 1)
+		end,
+		BossDefeatFlash = function()
+			local cc = addFx(Instance.new("ColorCorrectionEffect")) :: ColorCorrectionEffect
+			cc.Name = "StoryBossDown"; cc.Parent = Lighting
+			tween(cc, 0.4, { Brightness = 0.3 }, nil, true, 1)
+		end,
+	}
+
+	function self.cleanup()
+		for _, m in self.actors do m:Destroy() end
+		for _, f in self.fx do f:Destroy() end
+		self.actors = {}; self.fx = {}
+	end
+	return self
+end
+
+-- Run a list of beats. ctx: { say, isAlive: () -> bool, story, team, onHook: (name, beat) -> () }
+function D.play(dir: any, beats: { any }, ctx: any)
+	local nUniverse = ctx.team and ctx.team:GetAttribute("Universe") or "?"
+	local uinfo = ctx.story.Universes and ctx.story.Universes[tonumber(nUniverse) or -1]
+	for _, beat in beats do
+		if not ctx.isAlive() then return end
+		for _, id in beat.actors or {} do dir.actor(id) end
+		if beat.cam and dir.cams[beat.cam] and not ctx.noCamera then
+			local ok, cf, t = pcall(dir.cams[beat.cam], beat)
+			if ok and cf then UIKit.tweenCamera(cf, t or 1.2) end
+		end
+		if beat.action and dir.actions[beat.action] then task.spawn(dir.actions[beat.action], beat) end
+		-- v3: beat.pool = "<StoryDialogue pool>" picks a random line ({ speaker?, text } or string); ctx.vars fills {player}/{universe}/...
+		local poolLine = beat.pool and D.pick(ctx.story[beat.pool])
+		local rawText = beat.text or (poolLine and poolLine.text)
+		if rawText and ctx.say then
+			local speaker, text = (poolLine and poolLine.speaker) or beat.speaker, string.gsub(D.fill(rawText, ctx.vars), "{N}", tostring(nUniverse))
+			if speaker == "God" and uinfo then speaker = uinfo.god end
+			ctx.say(speaker, text)
+		end
+		task.wait((beat.duration or 3) + 0.4)
+		if beat.speaker == "God" and uinfo and uinfo.line and ctx.say and ctx.isAlive() then
+			ctx.say("Team", uinfo.line); task.wait(3)
+		end
+		if beat["then"] == "FriezaBanterIfApplicable" and ctx.friezaBanter and ctx.friezaBanter() then
+			for _, l in ctx.story.FriezaBanter or {} do
+				if not ctx.isAlive() then return end
+				ctx.say(l.speaker, l.text); task.wait(l.duration + 0.3)
+			end
+		end
+		if beat.triggersWishChoice and ctx.onHook then ctx.onHook("WishChoice", beat) end
+		if beat.onEnd and ctx.onHook then ctx.onHook(beat.onEnd, beat) end
+	end
+end
+
+-- ===== v3 (db-story): shared helpers for live ToP cinematics =====
+function D.pick(pool: any): { speaker: string?, text: string }?
+	if type(pool) ~= "table" or #pool == 0 then return nil end
+	local e = pool[math.random(1, #pool)]
+	if type(e) == "string" then return { text = e } end
+	return e
+end
+
+function D.fill(text: string, vars: { [string]: any }?): string
+	if not vars then return text end
+	return (string.gsub(text, "{(%w+)}", function(k)
+		local v = vars[k]
+		return if v ~= nil then tostring(v) else nil -- unknown keys (e.g. {N}) are left for later passes
+	end))
+end
+
+-- One skippable cinematic at a time. opts = { name, beats, story, team?, vars?, takeCamera?, letterbox?, maxSeconds?, onHook?, onDone? }
+-- Skip: on-screen button, Space / Enter / gamepad B. Every exit path (end, skip, watchdog, D.stopActive) runs the same
+-- stop(): destroys actors + fx + gui, clears the InCinematic attribute and restores the player's camera.
+local active: any = nil
+function D.isPlaying(): boolean return active ~= nil end
+function D.stopActive(skipped: boolean?) if active then active.stop(skipped == true) end end
+
+function D.run(opts: any): any
+	if active then active.stop(false) end
+	local takeCamera = opts.takeCamera ~= false
+	local run: any = {}
+	local alive, finished = true, false
+	local gui = UIKit.gui("Cinematic_" .. tostring(opts.name or "Story"), 21)
+	if takeCamera and opts.letterbox ~= false then
+		UIKit.frame(gui, UDim2.new(1, 0, 0.1, 0), UDim2.fromScale(0, 0), Color3.new(0, 0, 0), 0)
+		UIKit.frame(gui, UDim2.new(1, 0, 0.1, 0), UDim2.fromScale(0, 0.9), Color3.new(0, 0, 0), 0)
+	end
+	local say = UIKit.subtitles(gui)
+	local dir = D.new()
+	dir.vars = opts.vars or {}
+	local conns: { RBXScriptConnection } = {}
+	local function stop(skipped: boolean)
+		if finished then return end
+		finished, alive = true, false
+		if active == run then active = nil end
+		for _, c in conns do c:Disconnect() end
+		pcall(dir.cleanup)
+		gui:Destroy()
+		if takeCamera then
+			player:SetAttribute("InCinematic", nil)
+			UIKit.restoreCamera()
+		end
+		if opts.onDone then task.spawn(opts.onDone, skipped) end
+	end
+	run.stop = stop
+	run.say = say
+	run.gui = gui
+	active = run
+	local skipBtn = UIKit.button(gui, "Skip ▶ (Space)", UDim2.new(0, 160, 0, 40), UDim2.new(1, -180, 0, 20), Color3.fromRGB(80, 30, 30))
+	skipBtn.Name = "Skip"
+	table.insert(conns, skipBtn.Activated:Connect(function() stop(true) end))
+	if takeCamera then
+		-- keys only skip while we own the camera (a fighter still needs Space to jump during HUD-only cinematics)
+		table.insert(conns, UserInputService.InputBegan:Connect(function(input)
+			local k = input.KeyCode
+			if k == Enum.KeyCode.Space or k == Enum.KeyCode.Return or k == Enum.KeyCode.ButtonB then stop(true) end
+		end))
+		player:SetAttribute("InCinematic", true)
+	end
+	table.insert(conns, player.CharacterAdded:Connect(function() stop(false) end))
+	task.delay(opts.maxSeconds or 30, function() stop(false) end) -- watchdog: never leave the camera stuck
+	task.spawn(function()
+		local ok, err = pcall(D.play, dir, opts.beats or {}, {
+			say = say, story = opts.story, team = opts.team, vars = opts.vars, noCamera = not takeCamera,
+			isAlive = function() return alive end, onHook = opts.onHook,
+		})
+		if not ok then warn("[CutsceneDirector] " .. tostring(opts.name) .. ": " .. tostring(err)) end
+		if alive then task.wait(0.5) end
+		stop(false)
+	end)
+	return run
+end
+
+return D
