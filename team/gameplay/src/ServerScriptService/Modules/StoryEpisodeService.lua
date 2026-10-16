@@ -353,7 +353,9 @@ local function runClash(run: any, token: number)
 				local ph = humOf(run.p)
 				if ph then ph:TakeDamage(cfg.loseDamage or 30) end
 				task.delay(2, function() if run.token == token and not run.ended then startAct(run) end end) -- go again
-			end -- "abort": death / reset is handled by the KO flow
+			elseif not run.pendingKO then -- "abort" without a KO (combat state reset, stun): restart the act, never stall
+				task.delay(1, function() if run.token == token and not run.ended then startAct(run) end end)
+			end -- a KO's abort is handled by the KO flow (the token already moved on)
 		end,
 	})
 	if not ok then task.delay(1, function() if run.token == token then startAct(run) end end) end
@@ -388,6 +390,8 @@ local function runHold(run: any, token: number)
 				end
 				BossNPC.setFrozen(run.boss, false)
 				task.delay(cfg.rearm or 6, function() if run.token == token and not run.ended then startAct(run) end end)
+			elseif not run.pendingKO then -- "abort" without a KO: re-arm the hold instead of stalling
+				task.delay(1, function() if run.token == token and not run.ended then startAct(run) end end)
 			end
 		end,
 	})

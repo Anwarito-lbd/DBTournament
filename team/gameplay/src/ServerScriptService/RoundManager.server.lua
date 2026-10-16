@@ -559,9 +559,11 @@ local function cleanupRound()
 		p:SetAttribute("Spectating", false)
 		p:SetAttribute("SpectateTarget", nil)
 		p:SetAttribute("GiftWindow", nil)
-		Combatant.resetCombat(p)
-		Arena.clearRingOut(p)
-		Arena.teleport(p, "Lobby")
+		if p:GetAttribute("InRaid") ~= true then -- v10: raid / story-episode players stay in their instance arena
+			Combatant.resetCombat(p)
+			Arena.clearRingOut(p)
+			Arena.teleport(p, "Lobby")
+		end
 	end
 	DevBots.clear()
 	SpiritBomb.resetRound()

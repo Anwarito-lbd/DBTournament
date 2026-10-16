@@ -1223,7 +1223,9 @@ function Combat.resetRound()
 	table.clear(lastHit)
 	table.clear(pendingBeams)
 	for _, p in Players:GetPlayers() do
-		Combat.resetPlayer(p)
+		if p:GetAttribute("InRaid") ~= true then -- v10: don't wipe a raid / story fight (e.g. a boss struggle) mid-run
+			Combat.resetPlayer(p)
+		end
 	end
 end
 
