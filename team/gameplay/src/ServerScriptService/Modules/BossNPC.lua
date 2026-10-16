@@ -447,7 +447,10 @@ function BossNPC.tick()
 		local usedSpecial = false
 		for name, sp in (b.def.specials or {}) do
 			local fn = SPECIALS[name]
-			if fn and now - (b.cds[name] or now - sp.cd * 0.5) >= sp.cd * mod(b).cdMult then
+			-- first use half a cooldown after the AI wakes (the old `or now - cd/2` default never recorded a time,
+			-- so it stayed at cd/2 < cd and no special ever fired, raids included)
+			if fn and b.cds[name] == nil then b.cds[name] = now - sp.cd * 0.5 end
+			if fn and now - b.cds[name] >= sp.cd * mod(b).cdMult then
 				b.cds[name] = now
 				fn(b, sp, target, tr)
 				usedSpecial = true
