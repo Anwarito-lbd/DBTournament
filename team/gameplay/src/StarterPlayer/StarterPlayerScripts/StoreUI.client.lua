@@ -267,6 +267,8 @@ end
 local function syncStateVisibility()
 	local s = workspace:GetAttribute("RoundState")
 	gui.Enabled = s ~= "Intro" and s ~= "Ending" and s ~= "CharacterSelect"
+		and game:GetService("Players").LocalPlayer:GetAttribute("InRaid") ~= true -- v11: raids / episodes own the screen
 end
 workspace:GetAttributeChangedSignal("RoundState"):Connect(syncStateVisibility)
+game:GetService("Players").LocalPlayer:GetAttributeChangedSignal("InRaid"):Connect(syncStateVisibility)
 syncStateVisibility()

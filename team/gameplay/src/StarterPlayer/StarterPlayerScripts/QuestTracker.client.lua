@@ -17,6 +17,9 @@ local function focusHidden(): boolean
 	if s == "CharacterSelect" or s == "Intro" or s == "Ending" then
 		return true
 	end
+	if lp:GetAttribute("InRaid") == true then -- v11: raids and story episodes own the screen
+		return true
+	end
 	return lp:GetAttribute("InTutorial") == true
 end
 
@@ -103,6 +106,9 @@ end)
 -- running into the HUD's controls panel at the bottom right (this panel's rows grow past its 260 px frame).
 frame.Position = UDim2.new(1, -310, 0.12, 0)
 lp:GetAttributeChangedSignal("InTutorial"):Connect(function()
+	frame.Visible = wanted and not focusHidden()
+end)
+lp:GetAttributeChangedSignal("InRaid"):Connect(function()
 	frame.Visible = wanted and not focusHidden()
 end)
 frame.Visible = wanted and not focusHidden()

@@ -180,8 +180,9 @@ RunService.RenderStepped:Connect(function(dt)
 	local state = workspace:GetAttribute("RoundState")
 	local spectating = player:GetAttribute("Spectating") == true
 	local cutscene = state == "Intro" or state == "Ending" or state == "CharacterSelect"
-	local hasChar = player.Character ~= nil
-	root.Visible = hasChar and not spectating and not cutscene
+	local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	local hasChar = hum ~= nil and hum.Health > 0 -- v11: no crosshair over the K.O. card
+	root.Visible = hasChar and not spectating and not cutscene and player:GetAttribute("InCinematic") ~= true -- v11: story/raid cinematics too
 
 	if not root.Visible then
 		return
@@ -210,7 +211,7 @@ RunService.RenderStepped:Connect(function(dt)
 	elseif mobile then
 		status.Text = "AUTO-AIM"
 		status.TextColor3 = Color3.fromRGB(180, 220, 255)
-	elseif UserInputService.GamepadEnabled then
+	elseif UserInputService:GetLastInputType().Name:sub(1, 7) == "Gamepad" then -- v11: the device in use, not "a pad is plugged in"
 		status.Text = "RIGHT STICK TO AIM"
 		status.TextColor3 = Color3.fromRGB(180, 220, 255)
 	else

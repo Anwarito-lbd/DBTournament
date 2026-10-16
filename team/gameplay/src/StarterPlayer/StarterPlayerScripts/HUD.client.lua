@@ -166,7 +166,7 @@ RunService.RenderStepped:Connect(function(dt)
 	local inTutorial = player:GetAttribute("InTutorial") == true
 	local picking = state == "CharacterSelect"
 	local strip = inTutorial or picking
-	hint.Visible = hintWanted and not strip
+	hint.Visible = hintWanted and not strip and not away -- v11: the controls wall stays out of episodes/raids
 	feed.Visible = not strip
 	stats.Visible = not picking
 	setPlayerList(not strip)

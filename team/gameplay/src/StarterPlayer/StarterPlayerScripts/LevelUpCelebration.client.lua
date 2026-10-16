@@ -95,7 +95,9 @@ local function show(level: number, unlocks: { string }?)
 	AudioRegistry.play("AuraBurst", owner, 0.5)
 end
 
+local SM = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ScreenManager"))
 ClientAPI.onLevelUp:Connect(function(level: number, unlocks: any)
+	SM.waitUntilFree(10) -- v11: never over an episode-clear card, KO card or cinematic
 	show(level, if type(unlocks) == "table" then unlocks else nil)
 end)
 

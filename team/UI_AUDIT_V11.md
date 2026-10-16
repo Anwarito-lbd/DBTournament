@@ -39,3 +39,12 @@ the 2-client views were **not** captured (Studio MCP can't emulate devices); the
 ## What works and should be kept
 Boss bar shape, ground telegraphs, letterbox + speaker-coloured subtitles, the KO and clear card idea,
 the episode objective checklist (after today's fix), the skill-card icons and key badges.
+
+## Rebuild progress
+- 2026-10-16: **Foundation** in place: `UIStyle` v11 kit (tokens, fixed type scale, plate/chip/action/meter/key badge,
+  device-aware key hints) and `ScreenManager` (layers, nine zones, callout queue, viewport text scaling, HUD hidden in
+  cinematics, `waitUntilFree` for pop-ups). **Episode HUD + clash/hold rebuilt** on it and verified in Studio
+  (training, fight, K.O., clash win/lose, hold win/lose, clear). Legacy quests, nav buttons, Store/Credits, controls
+  list and crosshair step aside during episodes; level-up waits for modals; crosshair hint follows the device in use.
+- Next: lobby (menu rail, tracker, vitals and skill bar on the kit), Story panel, character select, remaining panels.
+- Not verified yet: phone layout (needs device emulation), gamepad navigation.

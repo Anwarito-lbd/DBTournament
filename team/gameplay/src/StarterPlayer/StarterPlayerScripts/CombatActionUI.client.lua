@@ -535,7 +535,9 @@ RunService.RenderStepped:Connect(function()
 	-- STATE VISIBILITY (2026-10-14): this HUD had none, so the skill hotbar, the awakening bar and the stance
 	-- button were drawn over the character-select grid and the Intro/Ending cutscenes.
 	local st = workspace:GetAttribute("RoundState")
-	if st == "Intro" or st == "Ending" or st == "CharacterSelect" then
+	-- v11: raid / story-episode players are outside the round; their own cinematics hide the bar instead
+	local away = player:GetAttribute("InRaid") == true
+	if (away and player:GetAttribute("InCinematic") == true) or (not away and (st == "Intro" or st == "Ending" or st == "CharacterSelect")) then
 		gui.Enabled = false
 		return
 	end
