@@ -156,7 +156,10 @@ RunService.RenderStepped:Connect(function(dt)
 	local state = workspace:GetAttribute("RoundState") or "Waiting"
 	local t = workspace:GetAttribute("TimeLeft") or 0
 	local cutscene = state == "Intro" or state == "Ending"
-	gui.Enabled = not cutscene
+	-- v10: raid / story-episode players are outside the round: keep their bars and moves, drop the round banner
+	local away = player:GetAttribute("InRaid") == true
+	gui.Enabled = if away then player:GetAttribute("InCinematic") ~= true else not cutscene -- episode cinematics own the screen
+	top.Visible = not away
 	-- FTUE focus mode: strip the screen down while a new player is being onboarded. CharacterSelect also gets
 	-- the treatment - its full-screen character grid was being overlapped by the bars, the controls wall, the
 	-- elimination feed and Roblox's player list. The top banner stays: "Character Select 0:08" is useful there.
