@@ -417,6 +417,9 @@ function BossNPC.setFrozen(b: Boss, on: boolean)
 	if r then
 		if hum then hum:MoveTo(r.Position) end
 		r.Anchored = on
+		-- anchoring resets network ownership to automatic: without this the nearest client takes over the boss's
+		-- physics + Humanoid state after the first freeze and can replicate a death (Raditz died mid-phase-1)
+		if not on then pcall(function() r:SetNetworkOwner(nil) end) end
 	end
 end
 

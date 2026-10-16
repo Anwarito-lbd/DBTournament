@@ -321,8 +321,14 @@ local function watchThreshold(run: any, token: number, untilHp: number?)
 				nextAct(run)
 				return
 			end
-			if not h and run.bossDown then -- defeated outright (should not happen with minHp), treat as reaching the end
-				nextAct(run)
+			if not h and run.bossDown then -- died before the finisher (should not happen: minHp + server ownership)
+				-- recover instead of advancing into a clash/hold with no boss: respawn at the checkpoint HP, redo the act
+				warn("[StoryEpisodeService] boss died early in " .. tostring(run.def.id) .. "; respawning at checkpoint HP")
+				run.boss, run.bossDown = nil, false
+				spawnBoss(run)
+				local nh = bossHum(run)
+				if nh and run.bossSnapshot then nh.Health = math.min(nh.MaxHealth, run.bossSnapshot) end
+				startAct(run)
 				return
 			end
 		end
