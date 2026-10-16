@@ -168,7 +168,7 @@ end)
 
 function RaidService.init()
 	for id, d in Config.RAIDS do assert(RaidMath.oddsValid(d.drops), "[RaidService] invalid odds for " .. id) end
-	BossNPC.setHooks({ attack = Combat.npcHit, takeKi = Combat.takeKi, lastMove = Combat.lastMoveId })
+	BossNPC.setHooks({ attack = Combat.npcHit, takeKi = Combat.takeKi, lastMove = Combat.lastMoveId, stunned = Combat.isStunned })
 	Players.PlayerRemoving:Connect(function(p) dequeue(p); inRaid[p] = nil end)
 	-- v8b: db-map RaidFallZone (attr RaidId): falling off a raid map returns you to a RaidSpawn pad (no KO)
 	local CollectionService = game:GetService("CollectionService")

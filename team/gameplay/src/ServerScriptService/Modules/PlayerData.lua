@@ -9,7 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ToPLogic = require(game:GetService("ReplicatedStorage").Shared.ToPLogic)
 local Config = require(ReplicatedStorage.Shared.Config)
 
-local SCHEMA_VERSION = 9
+local SCHEMA_VERSION = 10
 local STORE_NAME = "ToP_PlayerData_v1"
 local LOCK_TIMEOUT = 1800 -- seconds; stale locks older than this can be stolen
 local AUTOSAVE = 120
@@ -77,6 +77,7 @@ type Profile = {
 	dragonBalls: any,
 	raids: any,
 	story: any,
+	episodes: any, -- v10: Legendary Episodes { [episodeId] = { cleared, clears, bestTime } }
 	tutorialDone: boolean?,
 	lock: { jobId: string, t: number }?,
 }
@@ -116,6 +117,7 @@ local function default(): Profile
 		},
 		raids = { firstClearWeek = {}, clears = 0 },
 		story = { done = {}, badges = {} },
+		episodes = {},
 		tutorialDone = false,
 		lock = nil,
 	}
@@ -176,6 +178,9 @@ local function migrate(d: any): Profile
 				d.training[k] = v
 			end
 		end
+	end
+	if v < 10 and type(d.episodes) ~= "table" then -- v10: Legendary Episodes progress (StoryEpisodeService)
+		d.episodes = {}
 	end
 	if v < 9 then -- v9 (lead): the Shenron/Super Dragon Ball Power stat wish is gone (pre-release): reset any saved boost to 1.0
 		d.statBoost = nil

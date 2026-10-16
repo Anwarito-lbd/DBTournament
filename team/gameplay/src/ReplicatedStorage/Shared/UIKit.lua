@@ -79,7 +79,9 @@ local SPEAKER_NAMES = { GrandPriest = "Grand Priest", Zeno = "Zeno", FutureZeno 
 local SPEAKER_COLORS = { GrandPriest = Color3.fromRGB(120, 200, 255), Zeno = Color3.fromRGB(200, 140, 255),
 	FutureZeno = Color3.fromRGB(200, 140, 255), SuperShenron = Color3.fromRGB(255, 90, 90), Leader = UIKit.GOLD,
 	npc_grand_priest = Color3.fromRGB(120, 200, 255), npc_zeno = Color3.fromRGB(200, 140, 255), npc_zeno_future = Color3.fromRGB(200, 140, 255), npc_shenron = Color3.fromRGB(255, 90, 90),
-	Bulma = Color3.fromRGB(80, 220, 210), Jiren = Color3.fromRGB(255, 70, 60) }
+	Bulma = Color3.fromRGB(80, 220, 210), Jiren = Color3.fromRGB(255, 70, 60),
+	-- v10 Legendary Episodes
+	Goku = Color3.fromRGB(255, 150, 40), Piccolo = Color3.fromRGB(120, 220, 90), Raditz = Color3.fromRGB(230, 70, 110) }
 function UIKit.subtitles(parent: Instance)
 	local box = UIKit.frame(parent, UDim2.new(0.7, 0, 0, 110), UDim2.new(0.15, 0, 1, -150), Color3.new(0, 0, 0), 0.35)
 	local who = UIKit.label(box, "", UDim2.new(1, -24, 0, 28), UDim2.new(0, 12, 0, 8), 22, UIKit.GOLD)

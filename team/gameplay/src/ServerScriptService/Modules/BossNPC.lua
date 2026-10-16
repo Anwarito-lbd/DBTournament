@@ -14,16 +14,21 @@ local Config = require(Shared.Config)
 local RaidMath = require(Shared.RaidMath)
 local Net = require(script.Parent.Net)
 local Arena = require(script.Parent.Arena)
+local TelegraphService = require(script.Parent.TelegraphService) -- v10: visible ground telegraphs for every special
 
 local BossNPC = {}
 local CombatEvent = Net.remote("CombatEvent")
-local hooks: any = { attack = nil, takeKi = nil, lastMove = nil }
+local PlayVFX = Net.remote("PlayVFX") -- v10: boss specials reuse the hero VFX modules (VFXRouter accepts any Model)
+-- attack(npc, vic, mv) -> outcome string; takeKi(p, n); lastMove(p); stunned(p) -> bool (v10, grab escape check)
+local hooks: any = { attack = nil, takeKi = nil, lastMove = nil, stunned = nil }
 function BossNPC.setHooks(h: any) hooks = h end
 
 export type Boss = {
 	model: Model, def: any, players: { Player }, hpMult: number, dmgMult: number, phase: number, alive: boolean,
 	cds: { [string]: number }, lastMelee: number, dmgBy: { [Player]: number }, hitsBy: { [Player]: number },
 	onDefeated: ((Boss) -> ())?, stunUntil: number,
+	-- v10 story hooks: frozen = AI paused (cinematics / struggles); onDamaged(b, att, amount); onStrike(b, p, outcome)
+	frozen: boolean, busyUntil: number, minHp: number?, onDamaged: ((Boss, Player?, number) -> ())?, onStrike: ((Boss, Player, string) -> ())?,
 }
 local bosses: { [Model]: Boss } = {}
 
@@ -81,9 +86,46 @@ function BossNPC.freeArena(inst: Instance, slot: number)
 end
 
 -- ===== model =====
+-- v10: def.color may be a Color3 or a pure-data { r, g, b } (StoryEpisodes)
+local function color3(c: any, default: Color3): Color3
+	if typeof(c) == "Color3" then return c end
+	if type(c) == "table" and #c == 3 then return Color3.fromRGB(c[1], c[2], c[3]) end
+	return default
+end
+
+-- v10: approved art from ReplicatedStorage.CharacterModels[def.visual] (Model with Humanoid + HumanoidRootPart).
+-- Scripts are stripped (third-party asset safety), parts unanchored so the Humanoid can move. nil -> generated rig.
+local function fromLibrary(visual: string?, scale: number?): Model?
+	if type(visual) ~= "string" then return nil end
+	local lib = game:GetService("ReplicatedStorage"):FindFirstChild("CharacterModels")
+	local src = lib and lib:FindFirstChild(visual)
+	if not src or not src:IsA("Model") or not src:FindFirstChildOfClass("Humanoid") or not src:FindFirstChild("HumanoidRootPart") then
+		return nil
+	end
+	local m = src:Clone()
+	for _, d in m:GetDescendants() do
+		if d:IsA("LuaSourceContainer") then d:Destroy()
+		elseif d:IsA("BasePart") then d.Anchored = false end
+	end
+	m.PrimaryPart = m:FindFirstChild("HumanoidRootPart") :: BasePart
+	if scale and scale ~= 1 then pcall(function() m:ScaleTo(m:GetScale() * scale) end) end
+	return m
+end
+
 local function build(def: any, at: CFrame): Model
+	local lib = fromLibrary(def.visual, def.scale)
+	if lib then
+		lib.Name = def.name or "Boss"
+		lib:SetAttribute("BossId", def.id or def.name)
+		lib:SetAttribute("AnimId", def.animId or def.visual)
+		lib:SetAttribute("ChampionModel", def.visual)
+		if def.aura then lib:SetAttribute("Form", def.aura) end
+		CollectionService:AddTag(lib, "Boss")
+		lib:PivotTo(at)
+		return lib
+	end
 	local desc = Instance.new("HumanoidDescription")
-	desc.HeadColor = Color3.fromRGB(230, 200, 170); desc.TorsoColor = def.color or Color3.fromRGB(60, 140, 80)
+	desc.HeadColor = Color3.fromRGB(230, 200, 170); desc.TorsoColor = color3(def.color, Color3.fromRGB(60, 140, 80))
 	desc.LeftArmColor = desc.HeadColor; desc.RightArmColor = desc.HeadColor
 	desc.LeftLegColor = desc.TorsoColor; desc.RightLegColor = desc.TorsoColor
 	desc.HeightScale = def.scale or 1.4; desc.WidthScale = def.scale or 1.4; desc.DepthScale = def.scale or 1.4; desc.HeadScale = def.scale or 1.4
@@ -100,6 +142,7 @@ local function build(def: any, at: CFrame): Model
 	model.Name = def.name or "Boss"
 	model:SetAttribute("BossId", def.id or def.name)
 	model:SetAttribute("AnimId", def.animId) -- db-animation: rig/anim set lookup
+	if def.aura then model:SetAttribute("Form", def.aura) end -- AuraRenderer NPC aura
 	CollectionService:AddTag(model, "Boss")
 	model:PivotTo(at)
 	return model
@@ -117,7 +160,8 @@ function BossNPC.spawn(def: any, at: CFrame, parent: Instance, players: { Player
 	local r = rootOf(m)
 	if r then pcall(function() (r :: BasePart):SetNetworkOwner(nil) end) end
 	local b: Boss = { model = m, def = def, players = players, hpMult = hpMult, dmgMult = o.dmgMult or RaidMath.dmgScale(#players),
-		phase = 1, alive = true, cds = {}, lastMelee = 0, dmgBy = {}, hitsBy = {}, onDefeated = o.onDefeated, stunUntil = 0 }
+		phase = 1, alive = true, cds = {}, lastMelee = 0, dmgBy = {}, hitsBy = {}, onDefeated = o.onDefeated, stunUntil = 0,
+		frozen = false, busyUntil = 0, onDamaged = o.onDamaged, onStrike = o.onStrike }
 	bosses[m] = b
 	m:SetAttribute("Phase", 1)
 	hum.Died:Connect(function() BossNPC.defeat(b) end)
@@ -166,12 +210,17 @@ function BossNPC.damage(att: Player?, m: Model, amount: number)
 	local b = bosses[m]
 	local hum = m:FindFirstChildOfClass("Humanoid")
 	if not b or not b.alive or not hum or amount <= 0 then return end
+	if b.minHp then -- v10: story bosses can't drop below the floor until the scripted finisher clears it
+		amount = math.min(amount, hum.Health - b.minHp)
+		if amount <= 0 then return end
+	end
 	hum:TakeDamage(amount)
 	if att then
 		b.dmgBy[att] = (b.dmgBy[att] or 0) + amount
 		b.hitsBy[att] = (b.hitsBy[att] or 0) + 1
 	end
 	CombatEvent:FireAllClients("Hit", { m, if att then att.UserId else 0, math.floor(amount + 0.5), 0, hum.Health <= 0 })
+	if b.onDamaged then task.spawn(b.onDamaged :: any, b, att, amount) end
 end
 function BossNPC.hit(att: Player, m: Model, mv: any, power: number)
 	BossNPC.damage(att, m, (mv.damage or 5) * (power or 1)) -- no PL ratio vs bosses: boss HP scales with party size instead
@@ -186,12 +235,35 @@ function BossNPC.get(m: Model): Boss? return bosses[m] end
 
 -- ===== AI =====
 local function mod(b: Boss): any return (b.def.phaseMods and b.def.phaseMods[b.phase]) or { dmg = 1, speed = 1, cdMult = 1 } end
-local function strike(b: Boss, p: Player, dmg: number, kb: number)
-	if hooks.attack then hooks.attack(b.model, p, { damage = dmg * b.dmgMult * mod(b).dmg, kb = kb, hitstun = 0.4, lethal = true,
-		inRound = b.def.topEvent == true }) end
+local function strike(b: Boss, p: Player, dmg: number, kb: number, hitstun: number?): string
+	local outcome = "None"
+	if hooks.attack then
+		outcome = hooks.attack(b.model, p, { damage = dmg * b.dmgMult * mod(b).dmg, kb = kb, hitstun = hitstun or 0.4, lethal = true,
+			inRound = b.def.topEvent == true }) or "None"
+	end
+	if b.onStrike then task.spawn(b.onStrike :: any, b, p, outcome) end
+	return outcome
 end
+
+-- v10: floor point under a position (telegraphs sit on the ground, not at root height)
+local groundParams = RaycastParams.new()
+groundParams.FilterType = Enum.RaycastFilterType.Exclude
+local function ground(pos: Vector3): Vector3
+	local ex: { Instance } = {}
+	for _, p in Players:GetPlayers() do if p.Character then table.insert(ex, p.Character) end end
+	for m in bosses do table.insert(ex, m) end
+	groundParams.FilterDescendantsInstances = ex
+	local hit = workspace:Raycast(pos + Vector3.new(0, 4, 0), Vector3.new(0, -60, 0), groundParams)
+	return if hit then hit.Position + Vector3.new(0, 0.15, 0) else pos - Vector3.new(0, 3, 0)
+end
+local RED, ORANGE = Color3.fromRGB(255, 50, 50), Color3.fromRGB(255, 150, 40)
+local function telegraphCircle(pos: Vector3, radius: number, windup: number, color: Color3?)
+	TelegraphService.show({ Shape = "Circle", CFrame = CFrame.new(ground(pos)), Color = color or RED, Duration = windup, Radius = radius })
+end
+
 local function aoe(b: Boss, name: string, pos: Vector3, sp: any)
 	CombatEvent:FireAllClients("BossTelegraph", { b.model, name, pos, sp.radius or 10, sp.windup or 0.8 })
+	telegraphCircle(pos, sp.radius or 10, sp.windup or 0.8)
 	task.delay(sp.windup or 0.8, function()
 		if not b.alive then return end
 		for _, p in b.players do
@@ -225,12 +297,133 @@ local SPECIALS: { [string]: (Boss, any, Player, BasePart) -> () } = {
 		local pos = (rootOf(b.model) :: BasePart).Position
 		for i = 0, sp.pulses - 1 do task.delay(i * 1.2, function() if b.alive then aoe(b, "PlanetDrain", pos, sp) end end) end
 	end,
+	-- ===== v10 story kit (Raditz); every hit is telegraphed and answerable (parry / dodge / Combo Breaker / dash) =====
+	-- Rush: closes the gap, then `hits` melee blows; each one flashes (BossWindup) `gap` s before contact -> parry window.
+	Rush = function(b, sp, t, tr)
+		local br = rootOf(b.model) :: BasePart
+		if (tr.Position - br.Position).Magnitude > (sp.range or 60) then return end -- too far: cooldown spent, keep chasing
+		local windup, hits, gap = sp.windup or 0.5, sp.hits or 3, sp.gap or 0.35
+		b.busyUntil = os.clock() + windup + hits * gap + 0.4
+		telegraphCircle(tr.Position, 6, windup, ORANGE)
+		CombatEvent:FireAllClients("BossTelegraph", { b.model, "Rush", tr.Position, 6, windup })
+		task.delay(windup, function()
+			if not b.alive or b.frozen or not palive(t, b) then return end
+			local r2 = proot(t)
+			if not r2 then return end
+			local flat = Vector3.new(br.Position.X - r2.Position.X, 0, br.Position.Z - r2.Position.Z)
+			local dir = if flat.Magnitude > 0.1 then flat.Unit else -r2.CFrame.LookVector
+			local dest = r2.Position + dir * 4.5
+			br.CFrame = CFrame.lookAt(dest, Vector3.new(r2.Position.X, dest.Y, r2.Position.Z))
+			CombatEvent:FireAllClients("BossSpecial", { b.model, "Rush", dest })
+			for i = 1, hits do
+				CombatEvent:FireAllClients("BossWindup", { b.model, t.UserId, gap })
+				task.wait(gap)
+				local r3 = proot(t)
+				if not b.alive or b.frozen or not r3 or not palive(t, b) then return end
+				if (r3.Position - br.Position).Magnitude <= 11 then strike(b, t, sp.damage or 7, if i == hits then 55 else 8) end
+			end
+		end)
+	end,
+	-- KiVolley: `shots` staggered blasts at wherever the target is standing; keep moving.
+	KiVolley = function(b, sp, t, _tr)
+		b.busyUntil = os.clock() + (sp.shots or 4) * (sp.gap or 0.3) + 0.2
+		for i = 1, sp.shots or 4 do
+			task.delay((i - 1) * (sp.gap or 0.3), function()
+				local r2 = proot(t)
+				if not b.alive or b.frozen or not r2 then return end
+				local pos = r2.Position
+				aoe(b, "KiVolley", pos, { radius = sp.radius or 8, windup = sp.windup or 0.7, damage = sp.damage or 8 })
+				task.delay(math.max(0, (sp.windup or 0.7) - 0.25), function()
+					if b.alive then PlayVFX:FireAllClients("KiBlast", b.model, pos) end
+				end)
+			end)
+		end
+	end,
+	-- Grab: cone in front. Caught -> held (hitstun) for holdTime; Combo Breaker escapes, otherwise a slam lands.
+	Grab = function(b, sp, t, tr)
+		local br = rootOf(b.model) :: BasePart
+		local windup = sp.windup or 0.8
+		local flatTo = Vector3.new(tr.Position.X - br.Position.X, 0, tr.Position.Z - br.Position.Z)
+		if flatTo.Magnitude < 0.1 then return end
+		local g = ground(br.Position)
+		b.busyUntil = os.clock() + windup + (sp.holdTime or 1.6) + 0.3
+		br.CFrame = CFrame.lookAt(br.Position, br.Position + flatTo)
+		TelegraphService.show({ Shape = "Cone", CFrame = CFrame.lookAt(g, g + flatTo), Color = Color3.fromRGB(200, 60, 255),
+			Duration = windup, Radius = sp.range or 12 })
+		CombatEvent:FireAllClients("BossTelegraph", { b.model, "Grab", tr.Position, sp.range or 12, windup })
+		task.delay(windup, function()
+			local r2 = proot(t)
+			if not b.alive or b.frozen or not r2 or not palive(t, b) then return end
+			local rel = r2.Position - br.Position
+			local flat = Vector3.new(rel.X, 0, rel.Z)
+			if flat.Magnitude > (sp.range or 12) or (flat.Magnitude > 0.1 and br.CFrame.LookVector:Dot(flat.Unit) < 0.4) then
+				CombatEvent:FireAllClients("BossSpecial", { b.model, "GrabWhiff", br.Position })
+				return
+			end
+			local out = strike(b, t, 2, 0, (sp.holdTime or 1.6) + 0.3) -- stun outlasts the check: only a Breaker frees you
+			if out ~= "Hit" then return end -- blocked / parried / i-frames: no grab
+			CombatEvent:FireAllClients("BossSpecial", { b.model, "Grab", t.UserId, sp.holdTime or 1.6 })
+			task.delay(sp.holdTime or 1.6, function()
+				if not b.alive or not palive(t, b) then return end
+				if hooks.stunned and not hooks.stunned(t) then
+					CombatEvent:FireAllClients("BossSpecial", { b.model, "GrabEscape", t.UserId })
+					return
+				end
+				strike(b, t, sp.damage or 18, 70)
+				local r3 = proot(t)
+				if r3 then Arena.damageAt(r3.Position, 8, 20) end
+				CombatEvent:FireAllClients("BossSpecial", { b.model, "GrabSlam", t.UserId })
+			end)
+		end)
+	end,
+	-- EnergyWave: long line toward the target, fired through the hero beam VFX (sp.vfx, default GalickGun). Dash sideways.
+	EnergyWave = function(b, sp, _t, tr)
+		local br = rootOf(b.model) :: BasePart
+		local flat = Vector3.new(tr.Position.X - br.Position.X, 0, tr.Position.Z - br.Position.Z)
+		if flat.Magnitude < 0.1 then return end
+		local dir = flat.Unit
+		local len, width, windup = sp.length or 140, sp.width or 10, sp.windup or 1.1
+		local g = ground(br.Position)
+		b.busyUntil = os.clock() + windup + 0.8
+		br.CFrame = CFrame.lookAt(br.Position, br.Position + dir)
+		TelegraphService.show({ Shape = "Line", CFrame = CFrame.lookAt(g, g + dir), Color = RED, Duration = windup, Length = len, Width = width })
+		CombatEvent:FireAllClients("BossTelegraph", { b.model, "EnergyWave", br.Position + dir * len, width, windup })
+		task.delay(math.max(0, windup - 0.3), function()
+			if b.alive and not b.frozen then PlayVFX:FireAllClients(sp.vfx or "GalickGun", b.model, br.Position + dir * len) end
+		end)
+		task.delay(windup, function()
+			if not b.alive or b.frozen then return end
+			local from = br.Position
+			for _, p in b.players do
+				local r2 = proot(p)
+				if r2 and palive(p, b) then
+					local rel = r2.Position - from
+					local along = rel:Dot(dir)
+					local side = (Vector3.new(rel.X, 0, rel.Z) - dir * along).Magnitude
+					if along >= 0 and along <= len and side <= width / 2 + 2 then strike(b, p, sp.damage or 22, 75) end
+				end
+			end
+			Arena.damageAt(from + dir * math.min(len, 60), sp.arenaRadius or 10, sp.arenaPower or 25)
+			CombatEvent:FireAllClients("BossSpecial", { b.model, "EnergyWave", from + dir * len })
+		end)
+	end,
 }
+
+-- v10: pause/resume the AI (cinematics, struggles). Frozen bosses hold position (root anchored) and never attack.
+function BossNPC.setFrozen(b: Boss, on: boolean)
+	b.frozen = on
+	local r = rootOf(b.model)
+	local hum = b.model:FindFirstChildOfClass("Humanoid")
+	if r then
+		if hum then hum:MoveTo(r.Position) end
+		r.Anchored = on
+	end
+end
 
 function BossNPC.tick()
 	local now = os.clock()
 	for m, b in bosses do
-		if not b.alive then continue end
+		if not b.alive or b.frozen then continue end
 		local hum = m:FindFirstChildOfClass("Humanoid")
 		local r = rootOf(m)
 		if not hum or not r then continue end
@@ -249,20 +442,40 @@ function BossNPC.tick()
 			end
 		end
 		if not target then continue end
+		if now < b.busyUntil then continue end -- v10: committed to a special / melee windup
 		local tr = proot(target) :: BasePart
+		local usedSpecial = false
 		for name, sp in (b.def.specials or {}) do
 			local fn = SPECIALS[name]
 			if fn and now - (b.cds[name] or now - sp.cd * 0.5) >= sp.cd * mod(b).cdMult then
 				b.cds[name] = now
 				fn(b, sp, target, tr)
+				usedSpecial = true
 				break
 			end
 		end
+		if usedSpecial and now < b.busyUntil then continue end
 		local mel = b.def.melee
 		if best > (mel.range or 8) then hum:MoveTo(tr.Position)
 		elseif now - b.lastMelee >= mel.cd * mod(b).cdMult then
 			b.lastMelee = now
-			strike(b, target, mel.damage, mel.kb or 40)
+			if mel.windup then
+				-- v10: telegraphed melee (flash -> contact after `windup`): blocking on the flash is a parry
+				local w = mel.windup :: number
+				b.busyUntil = now + w + 0.1
+				hum:MoveTo(r.Position)
+				CombatEvent:FireAllClients("BossWindup", { m, target.UserId, w })
+				local tgt = target
+				task.delay(w, function()
+					local r2, br2 = proot(tgt), rootOf(m)
+					if b.alive and not b.frozen and r2 and br2 and palive(tgt, b)
+						and (r2.Position - br2.Position).Magnitude <= (mel.range or 8) + 3 then
+						strike(b, tgt, mel.damage, mel.kb or 40)
+					end
+				end)
+			else
+				strike(b, target, mel.damage, mel.kb or 40)
+			end
 		end
 	end
 end

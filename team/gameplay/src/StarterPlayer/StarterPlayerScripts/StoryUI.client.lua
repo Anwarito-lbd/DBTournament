@@ -1,14 +1,22 @@
 -- LocalScript (v8, db-gameplay): Story mission list (arc, enemy, goal, rewards, locks). Toggle [M].
+-- v10: "LEGENDARY EPISODES" section on top (StoryEpisodeService: EpisodeList / EpisodeStart); the v8 missions stay below
+-- as quick battles.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local S = require(Shared:WaitForChild("UIStyle"))
 if not S.remotes({ "StoryList", "StoryStart", "StoryUpdate" }, 15) then return end
 local ClientAPI = require(Shared:WaitForChild("ClientAPI"))
+local Remotes = ReplicatedStorage:WaitForChild("Remotes")
+local EpisodeList = Remotes:WaitForChild("EpisodeList", 10) :: RemoteEvent?
+local EpisodeStart = Remotes:WaitForChild("EpisodeStart", 10) :: RemoteEvent?
 
 local gui = S.gui("StoryUI", 21)
 local panel = S.panel(gui, 0.6, 0.75, 760, 580)
 S.title(panel, "STORY MODE")
-local set = S.toggle(gui, panel, Enum.KeyCode.M, "Story", 4, function() ClientAPI.requestStory() end)
+local set = S.toggle(gui, panel, Enum.KeyCode.M, "Story", 4, function()
+	ClientAPI.requestStory()
+	if EpisodeList then EpisodeList:FireServer() end
+end)
 S.close(panel, function() set(false) end)
 local list = S.list(panel, UDim2.fromScale(0.94, 0.84), UDim2.fromScale(0.03, 0.13))
 
@@ -19,8 +27,58 @@ local function goalText(g: any): string
 	elseif g.type == "timed" then return ("Win within %d s"):format(g.seconds or 0) end
 	return "Defeat the enemy"
 end
-ClientAPI.onStoryList(function(d)
+local lastMissions: any = nil
+local lastEpisodes: any = nil
+
+-- v10: episode cards (LayoutOrder < 0 keeps them above the missions)
+local function renderEpisodes()
+	local d = lastEpisodes
+	if not d or not d.available then return end
+	local h = S.label(list, "LEGENDARY EPISODES", UDim2.new(1, -12, 0, 30), UDim2.new(), S.GOLD, S.FONT_TITLE)
+	h.LayoutOrder = -1000; h.TextXAlignment = Enum.TextXAlignment.Left
+	for i, e in d.episodes do
+		local c = S.card(list, 104, -1000 + i)
+		if not e.unlocked then c.BackgroundTransparency = 0.5 end
+		local st = c:FindFirstChildOfClass("UIStroke")
+		if st then st.Transparency = 0; st.Thickness = if e.cleared then 1 else 2 end
+		local t = S.label(c, ("EP %d  •  %s%s"):format(i, string.upper(e.title), if e.cleared then "  ✓" else ""), UDim2.new(0.7, 0, 0, 28),
+			UDim2.new(0, 10, 0, 4), if e.cleared then S.GREEN else S.GOLD, S.FONT_TITLE)
+		t.TextXAlignment = Enum.TextXAlignment.Left
+		local r = e.rewards or {}
+		local best = if e.bestTime then ("  •  best %d:%02d"):format(e.bestTime // 60, math.floor(e.bestTime % 60)) else ""
+		local b = S.label(c, ("%s Saga  •  ~%d min%s\n%s\nFirst clear: %d XP, %d Zeni%s"):format(e.saga or "?", e.minutes or 8, best, e.blurb or "",
+			r.xp or 0, r.zeni or 0, if r.title then (", title \"" .. r.title .. "\"") else ""), UDim2.new(0.7, 0, 0, 68), UDim2.new(0, 10, 0, 32),
+			S.MUTED, S.FONT_BODY)
+		b.TextXAlignment = Enum.TextXAlignment.Left; b.TextYAlignment = Enum.TextYAlignment.Top
+		if e.unlocked and EpisodeStart then
+			S.button(c, if e.cleared then "REPLAY" else "PLAY", UDim2.new(0.22, 0, 0, 48), UDim2.new(0.76, 0, 0.5, -24), if e.cleared then S.BLUE else S.GREEN,
+				function() (EpisodeStart :: RemoteEvent):FireServer(e.id); set(false) end)
+		else
+			S.label(c, "LOCKED\nclear the previous episode", UDim2.new(0.22, 0, 0, 48), UDim2.new(0.76, 0, 0.5, -24), S.RED)
+		end
+	end
+	local q = S.label(list, "QUICK BATTLES", UDim2.new(1, -12, 0, 26), UDim2.new(), S.MUTED, S.FONT_TITLE)
+	q.LayoutOrder = -1; q.TextXAlignment = Enum.TextXAlignment.Left
+end
+
+local renderMissions: (any) -> ()
+local function render()
 	S.clear(list)
+	renderEpisodes()
+	if lastMissions then renderMissions(lastMissions) end
+end
+if EpisodeList then
+	EpisodeList.OnClientEvent:Connect(function(d)
+		lastEpisodes = d
+		render()
+	end)
+end
+
+ClientAPI.onStoryList(function(d)
+	lastMissions = d
+	render()
+end)
+renderMissions = function(d)
 	if not d.available then S.label(list, "Story missions are not available on this server yet.", UDim2.new(1, -12, 0, 40), UDim2.new(), S.MUTED); return end
 	local lastArc = nil
 	for i, m in d.missions do
@@ -44,7 +102,7 @@ ClientAPI.onStoryList(function(d)
 			S.label(c, "LOCKED\nclear the previous mission", UDim2.new(0.22, 0, 0, 44), UDim2.new(0.76, 0, 0.5, -22), S.RED)
 		end
 	end
-end)
+end
 ClientAPI.onStory(function(d)
 	if d.error then S.toast(gui, tostring(d.error), S.RED)
 	elseif d.started then S.toast(gui, d.name .. ": " .. goalText(d.goal))

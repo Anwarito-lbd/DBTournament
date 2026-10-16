@@ -21,6 +21,7 @@ local QuestService = require(script.Parent.QuestService)
 local TrainingBots = require(script.Parent.TrainingBots) -- v7 Gravity Room sparring NPCs
 local BossNPC = require(script.Parent.BossNPC) -- v8 raid / story bosses
 local StatResolver = require(game:GetService("ReplicatedStorage").Shared.StatResolver)
+local EpisodeLogic = require(game:GetService("ReplicatedStorage").Shared.EpisodeLogic) -- v10 boss struggles
 
 local Combat = {}
 local SK = Config.SKILL
@@ -38,6 +39,7 @@ local UseItemRemote = Net.remote("UseItem")
 local TeamComboHook = Net.hook("TeamCombo")
 local DamagedHook = Net.hook("PlayerDamaged") -- (victim, attacker, amount)
 local EliminateHook = Net.hook("EliminatePlayer") -- RoundManager listens (victim, killer?, reason)
+local SignalHook = Net.hook("CombatSignal") -- v10: (player, kind) accepted actions for story objectives ("vanish")
 local eraseUsed = false -- Zeno Erase: once per MATCH
 local kindHandlers: { [string]: (Player, any, Vector3, string) -> () }
 
@@ -110,7 +112,8 @@ local function humOf(p: Player): Humanoid?
 end
 local function canAct(p: Player): boolean
 	local roundState = workspace:GetAttribute("RoundState")
-	if roundState == "Intro" or roundState == "Ending" then
+	-- the global round freeze doesn't apply to players fighting in a raid/story instance (v10)
+	if (roundState == "Intro" or roundState == "Ending") and p:GetAttribute("InRaid") ~= true then
 		return false
 	end
 	if p:GetAttribute("FusedPassenger") then
@@ -527,6 +530,10 @@ StruggleInput.OnServerEvent:Connect(function(p)
 	local now = os.clock()
 	local nearPulse = math.min(math.abs(now - st.lastPulse), math.abs(st.nextPulse - now)) <= cfg.timingTol
 	local w = if nearPulse then cfg.timingWeight else 1
+	if st.boss then -- v10 story struggle: the boss side is scripted (startBossStruggle), skill only
+		st.score += w
+		return
+	end
 	if st.helper == p then -- D18 third beam: x0.5 weight to the side it supports
 		w *= ToPLogic.STRUGGLE_JOIN_WEIGHT
 		st.score += if st.helperSide == "a" then w else -w
@@ -536,6 +543,80 @@ StruggleInput.OnServerEvent:Connect(function(p)
 	w *= Combat.statRatio(p, other) -- compressed: skill (inputs/timing) dominates
 	st.score += if st.a == p then w else -w
 end)
+
+-- v10 story: player vs boss struggle (the PvP startStruggle above is untouched).
+-- mode "clash": beam clash, broadcast as StruggleStart/Pulse/End with the boss MODEL as side b (TransformCinematic and
+-- MobileControls already accept a model there). mode "hold": grapple, broadcast as HoldStart/HoldPulse/HoldEnd.
+-- The boss pushes opts.bossRate per second; the player's StruggleInput (V / mash button) pushes back with the usual
+-- pulse-timing weight but no stat ratio. Outcome rules: EpisodeLogic.struggleOutcome. opts.onEnd(result) runs once with
+-- "win" | "lose" | "abort" (player died/left/reset, boss removed). Returns false if the player is already struggling.
+function Combat.startBossStruggle(p: Player, bossModel: Model, opts: any): boolean
+	local s = S(p)
+	if s.struggle or not canAct(p) then
+		return false
+	end
+	local cfg = SK.Struggle
+	local mode = if opts.mode == "hold" then "hold" else "clash"
+	local rules = { winScore = opts.winScore or cfg.winScore, maxTime = opts.maxTime or cfg.maxTime }
+	local now0 = os.clock()
+	local st = {
+		boss = bossModel,
+		mode = mode,
+		a = p,
+		score = opts.startScore or 0,
+		t0 = now0,
+		nextPulse = now0 + cfg.pulse,
+		lastPulse = now0,
+	}
+	pendingBeams[p] = nil
+	s.blocking = false
+	s.struggle = st
+	publish(p)
+	local prefix = if mode == "hold" then "Hold" else "Struggle"
+	event(prefix .. "Start", { p.UserId, bossModel, rules.maxTime, rules.winScore })
+	task.spawn(function()
+		local last = os.clock()
+		local result = "abort"
+		while true do
+			task.wait(0.03)
+			local now = os.clock()
+			st.score -= (opts.bossRate or 8) * (now - last)
+			last = now
+			if now >= st.nextPulse then
+				st.lastPulse = st.nextPulse
+				st.nextPulse += cfg.pulse
+				event(prefix .. "Pulse", { p.UserId, bossModel, st.score, now - st.t0 })
+			end
+			local ps = cs[p]
+			if not p.Parent or not ps or ps.struggle ~= st or not canAct(p) or not bossModel.Parent then
+				break
+			end
+			local out = EpisodeLogic.struggleOutcome(mode, st.score, now - st.t0, rules)
+			if out then
+				result = out
+				break
+			end
+		end
+		local ps = cs[p]
+		if ps and ps.struggle == st then
+			ps.struggle = nil
+		end
+		event(prefix .. "End", { if result == "win" then p.UserId else 0, if result == "lose" then p.UserId else 0, result })
+		if result == "win" and mode == "clash" then
+			QuestService.track(p, "struggleWin", 1)
+		end
+		if opts.onEnd then
+			task.spawn(opts.onEnd, result)
+		end
+	end)
+	return true
+end
+
+-- v10: hitstun query (BossNPC grab: still held at the check = no Combo Breaker used)
+function Combat.isStunned(p: Player): boolean
+	local s = cs[p]
+	return s ~= nil and s.stunUntil > os.clock()
+end
 
 -- ===== Executing moves =====
 local function execute(p: Player, moveId: string, mv: any, targetPos: Vector3, power: number)
@@ -1021,6 +1102,7 @@ VanishRemote.OnServerEvent:Connect(function(p, dir)
 	root.CFrame = CFrame.lookAt(dest, if lr then lr.Position else dest + root.CFrame.LookVector)
 	event("Vanish", { p.UserId })
 	publish(p)
+	if p:GetAttribute("InStory") then SignalHook:Fire(p, "vanish") end
 end)
 
 BreakRemote.OnServerEvent:Connect(function(p)

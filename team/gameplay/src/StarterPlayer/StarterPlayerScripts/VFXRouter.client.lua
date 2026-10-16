@@ -101,6 +101,14 @@ ClientAPI.onPlayVFX:Connect(function(kind: string, character: Model, arg: any)
 	if not character or not character.Parent then
 		return
 	end
+	-- v10: plain ki blasts (players' KiBlast move, story boss volleys, ally chip shots) use the shared projectile
+	if kind == "KiBlast" then
+		local c = mod("VFXCommon")
+		if c and c.KiBlast then
+			pcall(c.KiBlast, character, { Target = if typeof(arg) == "Vector3" then arg else nil })
+		end
+		return
+	end
 	local modName = MODULES[kind]
 	-- Signature ranged move per champion, covering both the generic "Kamehameha" slot and the
 	-- "GalickGun" kind that TrainingBots broadcasts for the Vegeta sparring partner.

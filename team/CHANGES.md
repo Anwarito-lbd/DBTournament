@@ -1,3 +1,33 @@
+## 2026-10-16 (Claude Code - v10 Legendary Episodes: `saiyan_arrival_01` vertical slice) - SHIPPED-UNVERIFIED
+
+Implements the Reborn v4 direction: saga-faithful story episodes with in-engine cinematics and player-controlled fights.
+**Not run in Roblox Studio yet** (cloud session). The pure logic is unit-tested, and every changed file compiles and type-checks
+against the Roblox API definitions (luau-lsp). See `gameplay/EPISODES.md` for the design, the Studio art tasks and the
+acceptance checklist.
+
+- **New**:
+  - `Shared/StoryEpisodes` (data), `Shared/EpisodeLogic` (pure state machine), `Shared/ShotLibrary` (anime-style camera grammar)
+  - `Modules/StoryEpisodeService` (server authority), `StoryEpisodeClient` (HUD/cinematics)
+  - `tests/episode_tests.luau` (15 tests, wired into `run.sh`)
+- **PlayerData**: schema 9 -> 10 adds `episodes = {}`. The additive migration touches nothing else.
+- **BossNPC**:
+  - `def.visual` art from `CharacterModels` (scripts stripped)
+  - telegraphed melee (`melee.windup`, BossWindup event)
+  - specials `Rush` / `KiVolley` / `Grab` / `EnergyWave`
+  - `setFrozen`, `minHp`, `onDamaged` / `onStrike` hooks
+  - every `aoe` special now also draws a TelegraphService ground circle (raid telegraphs were previously invisible: no client handled `BossTelegraph`)
+- **Combat**:
+  - `startBossStruggle` (boss beam clash + grapple). The PvP struggle is untouched.
+  - `isStunned`
+  - `CombatSignal` hook on vanish (InStory only)
+  - `InRaid` players are exempt from the global Intro/Ending action freeze, so story/raid fights no longer stall during a tournament intro
+- **RaidService**: passes `stunned = Combat.isStunned` to the BossNPC hooks.
+- **CutsceneDirector**: `opts.shots`, `opts.canSkip`. **VFXRouter**: `KiBlast` renders the shared projectile (player Ki Blasts had no projectile before).
+- **StoryUI**: "LEGENDARY EPISODES" section above the v8 missions (now labelled QUICK BATTLES). **AuraRenderer**: `SaiyanDark` style. **UIKit**: Goku/Piccolo/Raditz speaker colours.
+- **Known**: `tests/v7_tests.luau` "angels NPC-only by flag" already failed on the base commit (`Config.FEATURES.PLAYABLE_ANGELS` is true). It stops `run.sh` before the later suites, so run those individually until it's resolved.
+
+---
+
 ## 2026-10-14 (Antigravity takeover - level-up celebration VERIFIED; full match loop exercised)
 
 ### `LevelUpCelebration` is now VERIFIED end-to-end (was the last SHIPPED-UNVERIFIED item)

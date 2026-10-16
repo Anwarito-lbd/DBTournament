@@ -403,8 +403,10 @@ function D.play(dir: any, beats: { any }, ctx: any)
 	for _, beat in beats do
 		if not ctx.isAlive() then return end
 		for _, id in beat.actors or {} do dir.actor(id) end
-		if beat.cam and dir.cams[beat.cam] and not ctx.noCamera then
-			local ok, cf, t = pcall(dir.cams[beat.cam], beat)
+		-- v10: ctx.shots (episode ShotLibrary moves) take precedence over the built-in ToP camera presets
+		local shotFn = beat.cam and ((ctx.shots and ctx.shots[beat.cam]) or dir.cams[beat.cam])
+		if shotFn and not ctx.noCamera then
+			local ok, cf, t = pcall(shotFn, beat)
 			if ok and cf then UIKit.tweenCamera(cf, t or 1.2) end
 		end
 		if beat.action and dir.actions[beat.action] then task.spawn(dir.actions[beat.action], beat) end
@@ -447,7 +449,8 @@ function D.fill(text: string, vars: { [string]: any }?): string
 	end))
 end
 
--- One skippable cinematic at a time. opts = { name, beats, story, team?, vars?, takeCamera?, letterbox?, maxSeconds?, onHook?, onDone? }
+-- One skippable cinematic at a time. opts = { name, beats, story, team?, vars?, takeCamera?, letterbox?, maxSeconds?, onHook?, onDone?,
+--   shots? (v10: { [camName]: (beat) -> (CFrame, tweenTime) }), canSkip? (v10: false hides Skip + ignores skip keys) }
 -- Skip: on-screen button, Space / Enter / gamepad B. Every exit path (end, skip, watchdog, D.stopActive) runs the same
 -- stop(): destroys actors + fx + gui, clears the InCinematic attribute and restores the player's camera.
 local active: any = nil
@@ -485,14 +488,17 @@ function D.run(opts: any): any
 	run.say = say
 	run.gui = gui
 	active = run
-	local skipBtn = UIKit.button(gui, "Skip ▶ (Space)", UDim2.new(0, 160, 0, 40), UDim2.new(1, -180, 0, 20), Color3.fromRGB(80, 30, 30))
-	skipBtn.Name = "Skip"
-	table.insert(conns, skipBtn.Activated:Connect(function() stop(true) end))
+	local canSkip = opts.canSkip ~= false
+	if canSkip then
+		local skipBtn = UIKit.button(gui, "Skip ▶ (Space)", UDim2.new(0, 160, 0, 40), UDim2.new(1, -180, 0, 20), Color3.fromRGB(80, 30, 30))
+		skipBtn.Name = "Skip"
+		table.insert(conns, skipBtn.Activated:Connect(function() stop(true) end))
+	end
 	if takeCamera then
 		-- keys only skip while we own the camera (a fighter still needs Space to jump during HUD-only cinematics)
 		table.insert(conns, UserInputService.InputBegan:Connect(function(input)
 			local k = input.KeyCode
-			if k == Enum.KeyCode.Space or k == Enum.KeyCode.Return or k == Enum.KeyCode.ButtonB then stop(true) end
+			if canSkip and (k == Enum.KeyCode.Space or k == Enum.KeyCode.Return or k == Enum.KeyCode.ButtonB) then stop(true) end
 		end))
 		player:SetAttribute("InCinematic", true)
 	end
@@ -500,7 +506,7 @@ function D.run(opts: any): any
 	task.delay(opts.maxSeconds or 30, function() stop(false) end) -- watchdog: never leave the camera stuck
 	task.spawn(function()
 		local ok, err = pcall(D.play, dir, opts.beats or {}, {
-			say = say, story = opts.story, team = opts.team, vars = opts.vars, noCamera = not takeCamera,
+			say = say, story = opts.story or {}, team = opts.team, vars = opts.vars, noCamera = not takeCamera, shots = opts.shots,
 			isAlive = function() return alive end, onHook = opts.onHook,
 		})
 		if not ok then warn("[CutsceneDirector] " .. tostring(opts.name) .. ": " .. tostring(err)) end

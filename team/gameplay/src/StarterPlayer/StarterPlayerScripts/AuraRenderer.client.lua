@@ -21,6 +21,7 @@ local FORM_STYLE = {
 	SuperSaiyanBlue = "blue", SSBEvolved = "blue", UltraInstinctSign = "ui", MUI = "ui", UltraInstinct = "ui",
 	SuperSaiyanGod = "red", KaioKen = "red", UltraEgo = "purple", FullPower = "white", Ultimate = "white",
 	Legendary = "green", KeflaPotara = "green", BeastGohan = "white", FriezaBlack = "black", MoroAwakened = "purple",
+	SaiyanDark = "black", -- v10 story boss aura (Raditz)
 }
 local SPARKS = { SuperSaiyan2 = true, SuperSaiyan3 = true, KeflaPotara = true, SSBEvolved = true, BeastGohan = true }
 

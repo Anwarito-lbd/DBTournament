@@ -23,6 +23,7 @@ local DragonBallService = require(Modules.DragonBallService) -- v8
 local RankedService = require(Modules.RankedService) -- v8
 local RaidService = require(Modules.RaidService) -- v8
 local StoryMissionService = require(Modules.StoryMissionService) -- v8
+local StoryEpisodeService = require(Modules.StoryEpisodeService) -- v10 Legendary Episodes
 local OnboardingService = require(Modules.OnboardingService) -- WP11
 require(Modules.BeerusCamp) -- registers the BeerusTrial drill
 require(Modules.DestroyerMoves) -- registers move kind "hakai"
@@ -43,6 +44,7 @@ DragonBallService.init()
 RankedService.init()
 RaidService.init()
 StoryMissionService.init()
+StoryEpisodeService.init()
 OnboardingService.init()
 local lobby = TeamAssignment.getLobby()
 if workspace:GetAttribute("EventMode") == nil then
