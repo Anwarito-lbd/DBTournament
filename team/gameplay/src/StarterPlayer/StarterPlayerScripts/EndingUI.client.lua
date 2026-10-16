@@ -88,6 +88,7 @@ local function skipEnding()
 end
 
 local function playEnding(winner: string)
+	if player:GetAttribute("InRaid") then return end -- v10: raid / story-episode players aren't in the round
 	if playingFor == winner and endingGui then return end -- already playing this round's ending
 	clearEnding()
 	playingFor = winner
@@ -164,6 +165,7 @@ end)
 
 local function showResults(summary: any)
 	if resultsGui then resultsGui:Destroy() end
+	if player:GetAttribute("InRaid") then resultsGui = nil; return end -- v10: not shown inside a raid / episode
 	local gui = UIKit.gui("Results", 15)
 	resultsGui = gui
 	local panel = UIKit.frame(gui, UDim2.new(0, 520, 0, 360), UDim2.new(0.5, -260, 0.5, -180), UIKit.DARK, 0.1)
@@ -192,6 +194,13 @@ local function showResults(summary: any)
 	body.Font = Enum.Font.Gotham; body.TextXAlignment = Enum.TextXAlignment.Left; body.TextYAlignment = Enum.TextYAlignment.Top
 	UIKit.label(panel, "Returning to lobby...", UDim2.new(1, 0, 0, 22), UDim2.new(0, 0, 1, -32), 14)
 end
+
+-- v10: entering a raid / story episode closes the round ending and results (and hands the camera back)
+player:GetAttributeChangedSignal("InRaid"):Connect(function()
+	if not player:GetAttribute("InRaid") then return end
+	if endingGui then clearEnding() end
+	if resultsGui then resultsGui:Destroy(); resultsGui = nil end
+end)
 
 ClientAPI.onRoundState:Connect(function(state, _t, extra)
 	if state == "Ending" then

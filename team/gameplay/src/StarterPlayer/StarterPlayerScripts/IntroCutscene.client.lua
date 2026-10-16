@@ -36,7 +36,7 @@ local function stop(skip: boolean)
 end
 
 local function play()
-	if playing then return end
+	if playing or player:GetAttribute("InRaid") then return end -- v10: raid / story-episode players aren't in the round
 	playing = true
 	token += 1
 	local my = token
@@ -74,5 +74,8 @@ end)
 
 ClientAPI.onRoundState:Connect(function(state)
 	if state == "Intro" then task.spawn(play) elseif playing then stop(false) end
+end)
+player:GetAttributeChangedSignal("InRaid"):Connect(function()
+	if player:GetAttribute("InRaid") and playing then stop(false) end -- entering a raid / episode ends the round intro
 end)
 if workspace:GetAttribute("RoundState") == "Intro" then task.spawn(play) end

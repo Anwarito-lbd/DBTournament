@@ -65,13 +65,17 @@ end
 -- ===== lighting: storm grade, restored on exit =====
 local LIGHTING = {
 	StormCanyon = {
-		props = { ClockTime = 17.4, Brightness = 1.3, Ambient = Color3.fromRGB(85, 76, 92), OutdoorAmbient = Color3.fromRGB(110, 95, 104),
-			FogColor = Color3.fromRGB(92, 82, 88), FogStart = 140, FogEnd = 950 },
-		cc = { Saturation = -0.18, Contrast = 0.18, Brightness = -0.03, TintColor = Color3.fromRGB(255, 232, 214) },
+		-- readable storm: overcast sky (clouds), shadowed canyon floor still lit enough to read telegraphs and fighters
+		props = { ClockTime = 17.4, Brightness = 2.2, Ambient = Color3.fromRGB(112, 102, 118), OutdoorAmbient = Color3.fromRGB(150, 136, 146),
+			FogColor = Color3.fromRGB(110, 100, 106), FogStart = 160, FogEnd = 950 },
+		cc = { Saturation = -0.15, Contrast = 0.12, Brightness = 0.02, TintColor = Color3.fromRGB(255, 236, 222) },
+		clouds = { Cover = 0.86, Density = 0.62, Color = Color3.fromRGB(150, 142, 150) },
 		rain = true,
 	},
 }
 local savedLighting: { [string]: any }? = nil
+local savedClouds: { [string]: any }? = nil -- Terrain.Clouds props before the episode ({} = we created the Clouds)
+local clouds: Clouds? = nil
 local cc: ColorCorrectionEffect? = nil
 local rainPart: Part? = nil
 local rainConn: RBXScriptConnection? = nil
@@ -88,6 +92,20 @@ local function applyLighting(name: string?)
 	for k, v in preset.cc do (e :: any)[k] = v end
 	e.Parent = Lighting
 	cc = e
+	if preset.clouds then
+		local c = workspace.Terrain:FindFirstChildOfClass("Clouds")
+		if c then
+			local saved = {}
+			for k in preset.clouds do saved[k] = (c :: any)[k] end
+			savedClouds = saved
+		else
+			c = Instance.new("Clouds")
+			savedClouds = {}
+			c.Parent = workspace.Terrain
+		end
+		for k, v in preset.clouds do ((c :: Clouds) :: any)[k] = v end
+		clouds = c
+	end
 	if preset.rain then
 		local p = Instance.new("Part")
 		p.Name = "EpisodeRain"; p.Anchored = true; p.CanCollide = false; p.CanQuery = false; p.CanTouch = false
@@ -113,6 +131,10 @@ local function restoreLighting()
 		savedLighting = nil
 	end
 	if cc then cc:Destroy(); cc = nil end
+	if clouds and savedClouds then
+		if next(savedClouds) == nil then clouds:Destroy() else for k, v in savedClouds do (clouds :: any)[k] = v end end
+	end
+	clouds, savedClouds = nil, nil
 	if rainConn then rainConn:Disconnect(); rainConn = nil end
 	if rainPart then rainPart:Destroy(); rainPart = nil end
 end
@@ -166,16 +188,29 @@ end
 local top = S.label(gui, "", UDim2.new(0.5, 0, 0, 28), UDim2.new(0.25, 0, 0, 10), S.GOLD, S.FONT_TITLE)
 local actLabel = S.label(gui, "", UDim2.new(0.4, 0, 0, 20), UDim2.new(0.3, 0, 0, 40), S.MUTED)
 
+-- objective checklist: one fixed text size for every row (long rows wrap instead of shrinking), panel grows to fit
 local objFrame = Instance.new("Frame")
-objFrame.Size = UDim2.new(0, 330, 0, 120); objFrame.Position = UDim2.new(0, 16, 0.28, 0)
+objFrame.Size = UDim2.new(0, if S.MOBILE then 280 else 340, 0, 0); objFrame.AutomaticSize = Enum.AutomaticSize.Y
+objFrame.Position = UDim2.new(0, 16, 0.28, 0)
 objFrame.BackgroundColor3 = S.DARK; objFrame.BackgroundTransparency = 0.25; objFrame.BorderSizePixel = 0; objFrame.Visible = false
 objFrame.Parent = gui
 S.corner(objFrame, 10); S.stroke(objFrame, S.GOLD, 1)
-local objTitle = S.label(objFrame, "TRAINING", UDim2.new(1, -16, 0, 22), UDim2.new(0, 8, 0, 4), S.GOLD, S.FONT_TITLE)
+do
+	local pad = Instance.new("UIPadding")
+	pad.PaddingTop, pad.PaddingBottom = UDim.new(0, 8), UDim.new(0, 10)
+	pad.PaddingLeft, pad.PaddingRight = UDim.new(0, 12), UDim.new(0, 12)
+	pad.Parent = objFrame
+	local list = Instance.new("UIListLayout")
+	list.SortOrder = Enum.SortOrder.LayoutOrder; list.Padding = UDim.new(0, 6)
+	list.Parent = objFrame
+end
+local objTitle = S.label(objFrame, "TRAINING", UDim2.new(1, 0, 0, 22), UDim2.new(), S.GOLD, S.FONT_TITLE)
 objTitle.TextXAlignment = Enum.TextXAlignment.Left
 local objRows: { TextLabel } = {}
 for i = 1, 4 do
-	local l = S.label(objFrame, "", UDim2.new(1, -16, 0, 22), UDim2.new(0, 8, 0, 4 + i * 24), Color3.new(1, 1, 1), S.FONT_BODY)
+	local l = S.label(objFrame, "", UDim2.new(1, 0, 0, 0), UDim2.new(), Color3.new(1, 1, 1), S.FONT_BODY)
+	l.TextScaled = false; l.TextSize = if S.MOBILE then 15 else 17
+	l.AutomaticSize = Enum.AutomaticSize.Y; l.LayoutOrder = i
 	l.TextXAlignment = Enum.TextXAlignment.Left
 	objRows[i] = l
 end
@@ -240,6 +275,7 @@ local function renderObjectives(list: { any }?)
 	objFrame.Visible = list ~= nil
 	for i, row in objRows do
 		local o = list and list[i]
+		row.Visible = o ~= nil
 		if o then
 			local done = o.have >= o.need
 			row.Text = (if done then "✔  " else "•  ") .. o.text .. (if o.need > 1 then ("  (%d/%d)"):format(o.have, o.need) else "")

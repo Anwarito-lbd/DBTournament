@@ -170,7 +170,7 @@ task.spawn(function()
 	local r = Remotes and Remotes:WaitForChild("AnnouncerEvent", 15)
 	if r and r:IsA("RemoteEvent") then
 		r.OnClientEvent:Connect(function(data)
-			if typeof(data) == "table" and data.text then
+			if typeof(data) == "table" and data.text and not player:GetAttribute("InRaid") then -- v10: not over a raid / episode
 				showSubtitle(data.speaker or "GrandPriest", data.text, data.duration)
 			end
 		end)
@@ -190,6 +190,7 @@ task.spawn(function()
 	local r = Remotes and Remotes:WaitForChild("SuperShenron", 15)
 	if r and r:IsA("RemoteEvent") then
 		r.OnClientEvent:Connect(function(d)
+			if typeof(d) ~= "table" or player:GetAttribute("InRaid") then return end -- v10: not over a raid / episode
 			if d.phase == "Summon" then
 				showBanner("SUPER SHENRON", tostring(d.winner) .. " may make a wish", S.GOLD, 4)
 			elseif d.phase == "Granted" then

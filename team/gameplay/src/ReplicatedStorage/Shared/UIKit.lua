@@ -198,6 +198,14 @@ end
 
 function UIKit.restoreCamera()
 	local cam = workspace.CurrentCamera
+	-- v10: hand back a normal follow view (behind + above the character) instead of the last shot's angle
+	local root = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if root then
+		local look = root.CFrame.LookVector
+		local flat = Vector3.new(look.X, 0, look.Z)
+		flat = if flat.Magnitude > 0.01 then flat.Unit else Vector3.zAxis
+		cam.CFrame = CFrame.lookAt(root.Position - flat * 12 + Vector3.new(0, 5, 0), root.Position + Vector3.new(0, 1.5, 0))
+	end
 	cam.CameraType = Enum.CameraType.Custom
 	local hum = Players.LocalPlayer.Character and Players.LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
 	if hum then cam.CameraSubject = hum end

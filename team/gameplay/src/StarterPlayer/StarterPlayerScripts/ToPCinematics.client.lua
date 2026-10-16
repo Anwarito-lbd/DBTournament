@@ -50,6 +50,7 @@ local function bark(speaker: string, text: string, secs: number?)
 	task.delay(secs or 3, function() if my == barkSeq then barkBox.Visible = false end end)
 end
 local function barkPool(pool: string, speaker: string, vars: { [string]: any }?, secs: number?): boolean
+	if player:GetAttribute("InRaid") then return false end -- v10: raid / story-episode players aren't in the round
 	local l = Director.pick((Story :: any)[pool])
 	if not l then return false end
 	bark(l.speaker or speaker, Director.fill(l.text, vars), secs)
@@ -79,7 +80,7 @@ local function enqueue(fn: (done: () -> ()) -> ())
 end
 local function cinematic(name: string, beats: { any }, vars: { [string]: any }, maxSeconds: number)
 	enqueue(function(done)
-		if workspace:GetAttribute("RoundState") ~= "InRound" then done(); return end
+		if workspace:GetAttribute("RoundState") ~= "InRound" or player:GetAttribute("InRaid") then done(); return end
 		barkSeq += 1; barkBox.Visible = false
 		Director.run({ name = name, beats = beats, story = Story, team = player.Team, vars = vars,
 			takeCamera = takeCamera(), maxSeconds = maxSeconds, onDone = function() done() end })
@@ -96,7 +97,7 @@ local function countdown(name: string, seconds: number)
 	local my = warnSeq
 	task.spawn(function()
 		for s = seconds, 1, -1 do
-			if my ~= warnSeq or workspace:GetAttribute("RoundState") ~= "InRound" then break end
+			if my ~= warnSeq or workspace:GetAttribute("RoundState") ~= "InRound" or player:GetAttribute("InRaid") then break end
 			warnLabel.Text = string.upper(name) .. " ARRIVES IN " .. s
 			warnLabel.Visible = true
 			local sc = warnLabel:FindFirstChildOfClass("UIScale") or Instance.new("UIScale"); sc.Parent = warnLabel; sc.Scale = 1.35
@@ -165,7 +166,7 @@ end)
 ClientAPI.onRoundState:Connect(function(state)
 	if state ~= "InRound" then
 		table.clear(queue)
-		Director.stopActive(false)
+		if not player:GetAttribute("InRaid") then Director.stopActive(false) end -- v10: never cut a raid / episode cinematic
 		warnSeq += 1; warnLabel.Visible = false
 		barkSeq += 1; barkBox.Visible = false
 	end
