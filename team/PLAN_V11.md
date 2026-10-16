@@ -1,6 +1,6 @@
 # Plan v11: from a working Episode 1 to the full Reborn look and feel
 
-Status: **approved 2026-10-16**, Style A. Nothing below is built yet unless marked DONE.
+Status: **approved 2026-10-16**, Style B. Nothing below is built yet unless marked DONE.
 Every step follows the same loop: **build → Studio play-test with screenshots → fix → you review → commit.**
 A step is only "done" when it was seen working in Studio, never because the code looks right.
 
@@ -17,7 +17,13 @@ A step is only "done" when it was seen working in Studio, never because the code
 - **Concept art in the vault** (`assets/reborn_concepts`) is AI-generated art direction, not gameplay.
   We use it as the quality target for skies, maps and lighting, not as in-game screenshots.
 
-## Art style: DECIDED 2026-10-16, Style A (imported anime-proportioned 3D models)
+## Art style: DECIDED 2026-10-16, Style B (Roblox-anime R15 avatars)
+Changed from A to B the same day ("since it's Roblox"). Consequences: every fighter is an R15 rig with
+anime hair, face and outfit (accessories, layered clothing or MeshParts), matching the concept art and the
+existing `AvatarSlots` anime style. The Sketchfab models become **likeness references**, not imports
+(this replaces the old "import the Piccolo FBX" task; Piccolo becomes an R15 build like everyone else).
+
+Original options considered:
 The local library has ~60 anime-proportioned 3D models; the vault concept art shows Roblox block-style
 fighters with anime hair. Mixing both looks incoherent, so pick one:
 - **A. Anime-model style:** imported skinned MeshPart rigs (Sketchfab), closest to the show, heavier on
@@ -49,10 +55,11 @@ firing, tournament overlays gated off the episode. Remaining:
 ## Phase 2: characters (after the style decision)
 1. **Registry:** `CharacterVisualRegistry` (data only): id, model, rig type, scale, form variants,
    animation set, portrait, author credit, license, approval status. Missing art falls back safely.
-2. **Per-character sourcing comparison (before any import).** The local library is a starting set, not
-   the answer. For each character, compare the best local file against the best online candidates:
-   Sketchfab (downloadable, CC-BY / CC0 / clear license), Creator Store items from verified, non-impersonating
-   creators, and other reputable marketplaces. Score each on: likeness to the show, art-style fit (A/B),
+2. **Per-character sourcing comparison (before any import).** For each character, compare the parts we
+   can build or reuse (our Blender hair/outfit pipeline, existing `CharacterModels`, `AvatarSlots` styles)
+   against the best online candidates: Creator Store hair/accessories/outfits from verified,
+   non-impersonating creators, UGC items, and reputable marketplaces; use the Sketchfab models and online
+   art as likeness references. Score each on: likeness to the show, art-style fit (A/B),
    rig quality (bones, weights, R15 retarget), textures, tri count / mobile cost, license and credit
    terms. Output: one comparison sheet per character (side-by-side renders + scores + links), you pick or
    approve the winner, then it goes through the pipeline below. Nothing is downloaded or inserted without
@@ -66,10 +73,10 @@ firing, tournament overlays gated off the episode. Remaining:
      Krillin, Trunks, Frieza `freezer_final_form_ed2a69`, Android 17/19, Broly `dragon_ball_zbroly_eafcd3`,
      Kid Buu, Fat Buu, Hit, Jiren, Zeno. Broken: `golden_frieza_315f9a` (pixel art),
      `frieza_emperor_84fa59`, `bulma_v2_10d396`.
-   - **Raditz:** no model exists. Build in Blender from the Vegeta armour rig + new long spiky hair +
-     scouter, R15-compatible, Humanoid + HumanoidRootPart.
-4. **Per character pipeline** (Blender MCP + Studio): import → check scale/rig/topology/tri count →
-   retarget to R15 → export → Studio import (File → Import 3D needs one click from you per batch, or
+   - **Raditz:** no model exists. R15 rig with very long spiky black hair, dark Saiyan armour and a
+     scouter (accessories/MeshParts built in Blender), Humanoid + HumanoidRootPart.
+4. **Per character pipeline** (Blender MCP + Studio): build/fit hair, face, outfit pieces on the R15 rig →
+   check scale/tri count → export → Studio import (File → Import 3D needs one click from you per batch, or
    computer-use with your OK) → strip scripts → place in `ReplicatedStorage.CharacterModels` →
    test idle/run/jump/block/combo/vanish/beam/hit-react in the episode storm lighting → screenshot sheet.
 5. Batch order: Goku, Piccolo, Raditz (Episode 1) → Vegeta, Nappa (Episode 2) → the rest by saga.
