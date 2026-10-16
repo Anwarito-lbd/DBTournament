@@ -1,9 +1,28 @@
-## 2026-10-16 (Claude Code - v10 Legendary Episodes: `saiyan_arrival_01` vertical slice) - SHIPPED-UNVERIFIED
+## 2026-10-16 (Claude Code - v10 Legendary Episodes: `saiyan_arrival_01` vertical slice) - PARTLY VERIFIED IN STUDIO
 
 Implements the Reborn v4 direction: saga-faithful story episodes with in-engine cinematics and player-controlled fights.
 **Not run in Roblox Studio yet** (cloud session). The pure logic is unit-tested, and every changed file compiles and type-checks
 against the Roblox API definitions (luau-lsp). See `gameplay/EPISODES.md` for the design, the Studio art tasks and the
 acceptance checklist.
+
+**Studio verification (local session, 2026-10-16, Play Solo through a Studio MCP bridge; input driven by test bots):**
+- VERIFIED: [M] panel order; PLAY starts the episode; all 11 acts play in order through to the clear card;
+  training counts strikes/parry/vanish, guide on the first attempt only; Raditz specials (Rush, Ki Volley, Grab,
+  Energy Wave) with visible telegraphs; parry, Combo Breaker escape and dash all work; KO in phase 1 resumes
+  phase 1, KO in phase 2 resumes at the clash, boss HP restored; clash win, hold win, Special Beam Cannon
+  finisher; first clear pays 600 XP / 800 Zeni + title, replay pays 25% (150 / 200) with skippable cinematics,
+  Leave pays nothing; previous fighter (Vegeta) restored after Leave and after a clear; Broly raid runs with
+  ground telegraphs; player Ki Blast sends its VFX and spawns a projectile (not caught on camera).
+- FIXED during the pass (separate commits): round cleanup yanked episode players to the Lobby and wiped boss
+  struggles; tournament intro/ending/results/barks drew over episodes and stole the camera; boss specials never
+  fired (raids included, pre-existing); a boss became client-owned after a freeze and could die mid-fight;
+  camera kept the last cinematic angle; objective rows auto-shrank; HUD round banner overlapped the episode
+  title; two client scripts waited on the wrong remote folder; tuning (clash win 22% -> 12%, softer specials).
+- STILL UNVERIFIED: clear surviving a rejoin (unpublished place uses the in-memory store); clash and hold LOSE
+  branches; KO during the clash or hold; mobile mash/break buttons; 2-client tests (episode next to a live
+  tournament round, PvP beam clash); Moro raid; human-feel difficulty (tuning is bot-based).
+- BEHAVIOUR CHANGE: raid bosses now use their specials as designed, so raids are harder than before.
+- ART: Goku/Piccolo/Raditz still fall back to generated rigs (character art is Phase 2 of `PLAN_V11.md`).
 
 - **New**:
   - `Shared/StoryEpisodes` (data), `Shared/EpisodeLogic` (pure state machine), `Shared/ShotLibrary` (anime-style camera grammar)

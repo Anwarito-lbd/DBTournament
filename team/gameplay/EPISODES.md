@@ -2,7 +2,7 @@
 
 Story Mode's main path is **saga episodes**: in-engine cinematics plus player-controlled fights, following the Reborn v4 direction (vault `REBORN_V4_CANON_STORY_EPISODES`). The 32 older missions (`gameplay/StoryMissions.lua`) stay in the [M] panel as **Quick Battles**.
 
-**Status:** code complete for `saiyan_arrival_01`. **Not yet Studio-verified.** Treat it as SHIPPED-UNVERIFIED until the checklist at the bottom passes.
+**Status:** code complete for `saiyan_arrival_01`, **partly verified in Studio** (2026-10-16). See the checklist at the bottom: only ticked boxes were seen working.
 
 ## Files
 | File | Role |
@@ -66,13 +66,13 @@ This part needs Studio, so it can't be done from a cloud session.
 - **Rights**: a fan game that uses Dragon Ball characters needs rights clearance before public release (see the vault's v4 notes). Never upload ripped anime footage, audio or dialogue.
 
 ## Studio acceptance checklist
-- [ ] Play Solo: no Output errors; [M] shows LEGENDARY EPISODES above QUICK BATTLES
-- [ ] All 8 acts play; the cinematic camera returns to the player after each one
-- [ ] Training counts strikes, parry and vanish; the guide only shows on the first attempt
-- [ ] Boss telegraphs are visible; parry, Combo Breaker escape and dash dodge all work
-- [ ] Clash and hold are player-controlled (PC V, mobile button) and win/lose branches both work
-- [ ] KO in phase 1, the clash and the hold resumes at the right checkpoint
-- [ ] Clear persists across rejoin; replay pays 25%; Leave pays nothing; your previous fighter is restored
+- [x] Play Solo: no Output errors; [M] shows LEGENDARY EPISODES above QUICK BATTLES
+- [x] All 8 acts play; the cinematic camera returns to the player after each one
+- [x] Training counts strikes, parry and vanish; the guide only shows on the first attempt
+- [x] Boss telegraphs are visible; parry, Combo Breaker escape and dash dodge all work
+- [ ] Clash and hold are player-controlled (PC V, mobile button) and win/lose branches both work *(PC win branches seen; lose branches and mobile buttons not yet)*
+- [ ] KO in phase 1, the clash and the hold resumes at the right checkpoint *(phase 1 and phase 2 -> clash seen; KO during clash/hold not yet)*
+- [ ] Clear persists across rejoin; replay pays 25%; Leave pays nothing; your previous fighter is restored *(all seen except rejoin: unpublished place has no DataStore)*
 - [ ] 2 clients: one in the episode, one in a tournament round, neither affects the other
-- [ ] Raid bosses (Broly/Moro) still behave the same, now with ground telegraphs
-- [ ] PvP beam clash unchanged; player Ki Blast now shows a projectile
+- [ ] Raid bosses (Broly/Moro) still behave the same, now with ground telegraphs *(Broly runs with telegraphs, but specials now actually fire, so raids are harder; Moro not run)*
+- [ ] PvP beam clash unchanged; player Ki Blast now shows a projectile *(Ki Blast VFX + projectile spawn seen in logs; PvP clash needs 2 clients)*
