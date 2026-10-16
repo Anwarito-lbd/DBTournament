@@ -39,13 +39,13 @@ StoryEpisodes.LIST = ({
 			melee = { damage = 9, range = 9, cd = 1.5, windup = 0.45, kb = 45 },
 			specials = {
 				-- parryable 3-hit rush: dashes to the target, each hit telegraphed (block on the flash)
-				Rush = { cd = 9, windup = 0.55, hits = 3, gap = 0.35, damage = 7, range = 60 },
+				Rush = { cd = 9, windup = 0.55, hits = 3, gap = 0.35, damage = 6, range = 60 },
 				-- ki volley: 4 small circles on the target's position, staggered (keep moving)
-				KiVolley = { cd = 7, windup = 0.7, shots = 4, gap = 0.3, radius = 8, damage = 8 },
+				KiVolley = { cd = 8, windup = 0.7, shots = 4, gap = 0.3, radius = 8, damage = 6 },
 				-- grab: cone telegraph; if caught you're held -> Combo Breaker (R) or take the slam
 				Grab = { cd = 13, windup = 0.8, range = 12, holdTime = 1.6, damage = 18 },
 				-- energy wave: long line telegraph down the arena (dash sideways)
-				EnergyWave = { cd = 15, windup = 1.1, length = 140, width = 10, damage = 22, vfx = "GalickGun" },
+				EnergyWave = { cd = 15, windup = 1.1, length = 140, width = 10, damage = 18, vfx = "GalickGun" },
 			},
 		},
 		objectives = {
@@ -53,7 +53,7 @@ StoryEpisodes.LIST = ({
 			{ id = "parry", text = "Parry Piccolo's jab: block the moment it flashes", signal = "parry", count = 1 },
 			{ id = "vanish", text = "Vanish (E / Vanish button)", signal = "vanish", count = 1 },
 		},
-		clash = { maxTime = 6, winScore = 30, bossRate = 10, winDamage = 0.22, loseDamage = 30, beam = "Kamehameha", bossBeam = "GalickGun" },
+		clash = { maxTime = 6, winScore = 30, bossRate = 10, winDamage = 0.12, loseDamage = 30, beam = "Kamehameha", bossBeam = "GalickGun" },
 		hold = { maxTime = 7, winScore = 30, startScore = 12, bossRate = 9, rearm = 6 },
 		finisher = { vfx = "SpecialBeamCannon" },
 		rewards = { xp = 600, zeni = 800, title = "Saiyan Arrival" },

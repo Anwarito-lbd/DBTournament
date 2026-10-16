@@ -39,7 +39,7 @@ Other systems the episode leans on:
    - Energy Wave: dash sideways
 
    Piccolo lands chip shots.
-5. **Beam clash** (checkpoint): mash V / the button. A win deals 22% boss HP; a loss is a heavy hit and you go again.
+5. **Beam clash** (checkpoint): mash V / the button. A win deals 12% boss HP; a loss is a heavy hit and you go again.
 6. **Boss phase 2** down to 20% HP.
 7. **"Hold him!"** (checkpoint): keep the grip meter up for 7 s while Piccolo charges. If he breaks free, the hold re-arms after 6 s.
 8. Special Beam Cannon finisher cinematic, then a short resolution.
