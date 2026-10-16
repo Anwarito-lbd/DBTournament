@@ -9,8 +9,8 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local S = require(Shared:WaitForChild("UIStyle"))
 
-local ActionRemote = ReplicatedStorage:WaitForChild("KingKaiAction") :: RemoteEvent
-local UpdateRemote = ReplicatedStorage:WaitForChild("KingKaiUpdate") :: RemoteEvent
+local ActionRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("KingKaiAction") :: RemoteEvent
+local UpdateRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("KingKaiUpdate") :: RemoteEvent
 
 local _player = Players.LocalPlayer
 local gui = S.gui("KingKaiGamesUI", 25)

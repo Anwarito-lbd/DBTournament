@@ -8,7 +8,7 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local S = require(Shared:WaitForChild("UIStyle"))
 
-local ReplayRemote = ReplicatedStorage:WaitForChild("BestMomentReplay") :: RemoteEvent
+local ReplayRemote = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("BestMomentReplay") :: RemoteEvent
 local _player = Players.LocalPlayer
 
 local gui = S.gui("ReplayViewerUI", 28)
