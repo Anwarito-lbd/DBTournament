@@ -9,6 +9,7 @@
 --   boss       live fight; ends when boss HP fraction <= `untilHp` (or the boss is defeated if untilHp is nil)
 --   clash      boss beam struggle (Combat.startBossStruggle mode "clash"); win = big damage, loss = heavy hit + retry
 --   hold       grapple struggle (mode "hold"): keep the grip for maxTime while the ally charges; loss = boss breaks free
+-- `bridge = true` marks a short linking cinematic that the HUD's beat tracker folds into the next beat (or the last).
 -- `checkpoint = true` marks where a KO'd player resumes (the act restarts, boss HP restored to the snapshot taken there).
 -- `canon = true` episodes play the legendary fighter (lead), never the custom warrior; results can't diverge from canon.
 local StoryEpisodes = {}
@@ -79,13 +80,13 @@ StoryEpisodes.LIST = ({
 			},
 			{ id = "phase1", kind = "boss", checkpoint = true, untilHp = 0.5, allyAssist = true },
 			{
-				id = "clashIntro", kind = "cinematic", maxSeconds = 4,
+				id = "clashIntro", kind = "cinematic", maxSeconds = 4, bridge = true,
 				beats = { { cam = "splitClash", subject = "boss", duration = 1.8, fx = { "speedLines", "shake" }, speaker = "Goku", text = "Ka... me... ha... me..." } },
 			},
 			{ id = "clash", kind = "clash", checkpoint = true },
 			{ id = "phase2", kind = "boss", untilHp = 0.2, allyAssist = true },
 			{
-				id = "holdIntro", kind = "cinematic", maxSeconds = 5,
+				id = "holdIntro", kind = "cinematic", maxSeconds = 5, bridge = true,
 				beats = { { cam = "orbitCharge", subject = "boss", duration = 2.4, fx = { "shake" }, speaker = "Piccolo", text = "Pin him down! Give me seven seconds!" } },
 			},
 			{ id = "hold", kind = "hold", checkpoint = true },
@@ -98,7 +99,7 @@ StoryEpisodes.LIST = ({
 				},
 			},
 			{
-				id = "resolution", kind = "cinematic", maxSeconds = 10, summary = "Raditz is down, but more are coming.",
+				id = "resolution", kind = "cinematic", maxSeconds = 10, bridge = true, summary = "Raditz is down, but more are coming.",
 				beats = {
 					{ cam = "establishingWide", subject = "anchor", duration = 2.6, speaker = "Piccolo", text = "He said others are on their way. Stronger ones." },
 					{ cam = "overShoulder", subject = "lead", duration = 3, speaker = "Goku", text = "Then we train harder. Starting today." },
