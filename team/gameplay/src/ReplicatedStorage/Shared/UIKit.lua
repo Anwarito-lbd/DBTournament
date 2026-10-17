@@ -106,58 +106,6 @@ function UIKit.subtitles(parent: Instance)
 	end
 end
 
--- ===== Placeholder figures (client-only, anchored, built from parts) =====
-local function part(m: Model, name: string, size: Vector3, cf: CFrame, color: Color3, shape: Enum.PartType?, mat: Enum.Material?): Part
-	local p = Instance.new("Part")
-	p.Name = name; p.Size = size; p.CFrame = cf; p.Color = color
-	p.Anchored = true; p.CanCollide = false; p.CanQuery = false; p.CanTouch = false
-	p.Material = mat or Enum.Material.SmoothPlastic
-	if shape then p.Shape = shape end
-	p.Parent = m
-	return p
-end
-
--- kind: "GrandPriest" | "Zeno" | "FutureZeno". cf = feet position/facing. Returns model; head position in attribute.
-function UIKit.figure(kind: string, cf: CFrame, scale: number?): Model
-	local s = scale or 1
-	local m = Instance.new("Model")
-	m.Name = "Story_" .. kind
-	local skin, robe, trim
-	if kind == "GrandPriest" then
-		skin, robe, trim = Color3.fromRGB(120, 170, 230), Color3.fromRGB(30, 40, 120), Color3.fromRGB(240, 240, 255)
-	else
-		skin, robe, trim = Color3.fromRGB(150, 160, 200), Color3.fromRGB(240, 120, 40), Color3.fromRGB(150, 80, 200)
-	end
-	local tall = if kind == "GrandPriest" then 1 else 0.6 -- Zeno is small with a big head
-	local function at(y: number) return cf * CFrame.new(0, y * s, 0) end
-	part(m, "LegL", Vector3.new(0.9, 2 * tall, 0.9) * s, at(1 * tall) * CFrame.new(-0.5 * s, 0, 0), robe)
-	part(m, "LegR", Vector3.new(0.9, 2 * tall, 0.9) * s, at(1 * tall) * CFrame.new(0.5 * s, 0, 0), robe)
-	local torsoY = 2 * tall + 1.25 * tall
-	part(m, "Torso", Vector3.new(2.2, 2.5 * tall, 1.2) * s, at(torsoY), robe)
-	part(m, "Trim", Vector3.new(0.5, 2.5 * tall, 1.3) * s, at(torsoY), trim)
-	part(m, "ArmL", Vector3.new(0.8, 2.3 * tall, 0.8) * s, at(torsoY) * CFrame.new(-1.5 * s, 0, 0), robe)
-	part(m, "ArmR", Vector3.new(0.8, 2.3 * tall, 0.8) * s, at(torsoY) * CFrame.new(1.5 * s, 0, 0), robe)
-	local headSize = if kind == "GrandPriest" then 1.6 else 2.4
-	local headY = torsoY + 1.25 * tall + headSize / 2
-	local head = part(m, "Head", Vector3.new(headSize, headSize, headSize) * s, at(headY), skin, Enum.PartType.Ball)
-	-- eyes
-	part(m, "EyeL", Vector3.new(0.25, 0.25, 0.1) * s, at(headY) * CFrame.new(-0.3 * s, 0.1 * s, -headSize / 2 * s), Color3.new(0, 0, 0))
-	part(m, "EyeR", Vector3.new(0.25, 0.25, 0.1) * s, at(headY) * CFrame.new(0.3 * s, 0.1 * s, -headSize / 2 * s), Color3.new(0, 0, 0))
-	if kind == "GrandPriest" then
-		part(m, "Hair", Vector3.new(1.7, 0.5, 1.7) * s, at(headY + 0.75), Color3.fromRGB(250, 250, 255))
-		part(m, "Mark", Vector3.new(0.3, 0.3, 0.1) * s, at(headY + 0.45) * CFrame.new(0, 0, -0.8 * s), Color3.fromRGB(120, 200, 255), nil, Enum.Material.Neon)
-		local halo = part(m, "Halo", Vector3.new(0.3, 3.6, 3.6) * s, at(torsoY) * CFrame.new(0, 0, 1 * s) * CFrame.Angles(0, math.rad(90), 0),
-			Color3.fromRGB(120, 200, 255), Enum.PartType.Cylinder, Enum.Material.Neon)
-		halo.Transparency = 0.4
-	else
-		part(m, "Symbol", Vector3.new(0.6, 0.6, 0.1) * s, at(torsoY + 0.3) * CFrame.new(0, 0, -0.65 * s), Color3.fromRGB(255, 220, 60), nil, Enum.Material.Neon)
-	end
-	m.PrimaryPart = head
-	m:SetAttribute("HeadY", headY * s)
-	m.Parent = workspace
-	return m
-end
-
 function UIKit.tweenCamera(cf: CFrame, t: number)
 	local cam = workspace.CurrentCamera
 	cam.CameraType = Enum.CameraType.Scriptable

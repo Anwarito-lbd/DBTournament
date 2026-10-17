@@ -9,6 +9,7 @@ local CollectionService = game:GetService("CollectionService")
 local UserInputService = game:GetService("UserInputService")
 local UIKit = require(script.Parent:WaitForChild("UIKit"))
 local SuperShenron = require(script.Parent:WaitForChild("SuperShenron"))
+local CastFigures = require(script.Parent:WaitForChild("CastFigures"))
 local player = Players.LocalPlayer
 
 local D = {}
@@ -16,7 +17,10 @@ local CENTER = Vector3.new(0, 500, 0)
 local FACE = Vector3.new(0, 0, 1)
 -- Layout is read from the v2 scalable arena (Workspace.WorldOfVoid.Arena attrs + ZenoBox/Spawn_Zeno) on every D.new()
 local SPOTS: { [string]: Vector3 } = {}
-local HEIGHT = { npc_grand_priest = 7.5, npc_zeno = 4, npc_zeno_future = 4, npc_zeno_guard_1 = 9, npc_zeno_guard_2 = 9 }
+local HEIGHT = { npc_grand_priest = 5.4, npc_zeno = 4, npc_zeno_future = 4, npc_zeno_guard_1 = 11, npc_zeno_guard_2 = 11 }
+-- the ever-present cast is built by CastFigures (rigged, anime-accurate); CharacterModels entries are not used for them
+local CAST_KIND = { npc_zeno = "Zeno", npc_zeno_future = "FutureZeno", npc_grand_priest = "GrandPriest",
+	npc_zeno_guard_1 = "Attendant", npc_zeno_guard_2 = "Attendant" }
 local SHENRON_BASE, BALLS_C, BALLS_R, K = Vector3.new(0, 470, -190), Vector3.new(0, 506, -120), 26, 1
 -- built Super Shenron (no library model): tail root far behind Zeno's box, facing the ring; scales with the arena
 local SHENRON_ROOT, SHENRON_SCALE = CFrame.new(0, 80, -600), 1
@@ -29,20 +33,38 @@ local function readLayout()
 	local arena = wov and wov:FindFirstChild("Arena")
 	local R = (arena and arena:GetAttribute("Radius") :: number?) or 150
 	K = R / 150
-	local zs = arena and arena:FindFirstChild("ZenoBox") and arena.ZenoBox:FindFirstChild("Spawn_Zeno") :: BasePart?
+	local function spawnPart(): BasePart?
+		local box = arena and arena:FindFirstChild("ZenoBox")
+		local p = box and box:FindFirstChild("Spawn_Zeno")
+		return if p and p:IsA("BasePart") then p else nil
+	end
+	-- Zeno's box floats ~600 studs from the ring, so with StreamingEnabled it is often not loaded yet when a cutscene
+	-- starts: ask for it to stream in, and if it still isn't here, derive the spot from the Arena's ZenoPos attribute
+	-- (the folder and its attributes always replicate) exactly as map/Arena.lua places Spawn_Zeno
+	local zp = arena and arena:GetAttribute("ZenoPos")
+	local zs = spawnPart()
+	if not zs and typeof(zp) == "Vector3" then
+		pcall(function() player:RequestStreamAroundAsync(zp, 2) end)
+		zs = spawnPart()
+	end
 	local zcf: CFrame
 	if zs then
 		local pos = zs.Position + Vector3.new(0, 0.5, 0)
+		zcf = CFrame.lookAt(pos, Vector3.new(0, pos.Y, 0))
+	elseif typeof(zp) == "Vector3" then
+		local pos = zp + Vector3.new(0, 3, 0) -- the box is level: Spawn_Zeno's top sits 3 studs above the box's centre
 		zcf = CFrame.lookAt(pos, Vector3.new(0, pos.Y, 0))
 	else
 		zcf = CFrame.lookAt(Vector3.new(0, 514, -62), Vector3.new(0, 514, 0))
 	end
 	FACE = zcf.LookVector
 	local function at(x, z) return (zcf * CFrame.new(x, 0, z)).Position end
+	-- zcf sits on the spawn pad's top, 1 stud above the box floor; the throne seats are 2 studs above the pad
+	local floor, seat = Vector3.new(0, -1, 0), Vector3.new(0, 2, 0)
 	SPOTS = {
-		npc_zeno = at(-6, 2), npc_zeno_future = at(6, 2),
-		npc_zeno_guard_1 = at(-15, 9), npc_zeno_guard_2 = at(15, 9),
-		npc_grand_priest = at(-20, -6),
+		npc_zeno = at(-6, 4.3) + seat, npc_zeno_future = at(6, 4.3) + seat,
+		npc_zeno_guard_1 = at(-15, 9) + floor, npc_zeno_guard_2 = at(15, 9) + floor,
+		npc_grand_priest = at(-20, -6) + floor,
 	}
 	-- Shenron rises behind the far (-Z) edge of the ring; balls gather on the ring near that edge
 	SHENRON_BASE = Vector3.new(0, 470, -(R + 60))
@@ -85,7 +107,6 @@ local function stand(m: Model, pos: Vector3, h: number, dir: Vector3?)
 	m:PivotTo(want * offset:Inverse())
 end
 
-local FALLBACK_KIND = { npc_grand_priest = "GrandPriest", npc_zeno = "Zeno", npc_zeno_future = "FutureZeno" }
 
 -- v3 (db-story): universe stand position (StandSpawn tags, Universe = "U07"), fallback: ring of stands around the arena
 local function standPos(u: number?): Vector3
@@ -109,21 +130,6 @@ end
 function D.new()
 	readLayout()
 	local self = { actors = {} :: { [string]: Model }, conns = {}, fx = {} :: { Instance }, vars = {} :: { [string]: any } }
-
-	local function guard(id: string, pos: Vector3): Model
-		local m = Instance.new("Model"); m.Name = "Story_" .. id
-		local purple, white = Color3.fromRGB(110, 50, 170), Color3.fromRGB(235, 235, 245)
-		local function p(n, s, off, c, mat)
-			local x = Instance.new("Part"); x.Name = n; x.Size = s; x.CFrame = CFrame.lookAt(pos + off, pos + off + FACE); x.Color = c
-			x.Material = mat or Enum.Material.SmoothPlastic; x.Parent = m; return x
-		end
-		p("Legs", Vector3.new(2, 4, 1.2), Vector3.new(0, 2, 0), purple)
-		p("Torso", Vector3.new(2.8, 3, 1.5), Vector3.new(0, 5.5, 0), white, Enum.Material.Foil)
-		p("Pauldrons", Vector3.new(4.2, 0.8, 1.7), Vector3.new(0, 7, 0), purple, Enum.Material.Foil)
-		local h = p("Head", Vector3.new(1.4, 1.6, 1.4), Vector3.new(0, 8, 0), Color3.fromRGB(190, 190, 220))
-		p("Helmet", Vector3.new(1.6, 1.4, 1.6), Vector3.new(0, 9.2, 0), purple, Enum.Material.Foil)
-		anchorAll(m); m.PrimaryPart = h; m.Parent = workspace; return m
-	end
 
 	-- one built Super Dragon Ball: glassy orange orb, inner glow, i red stars facing the arena
 	local function superBall(i: number): Model
@@ -180,16 +186,29 @@ function D.new()
 		return SuperShenron.build(SHENRON_ROOT, SHENRON_SCALE)
 	end
 
+	-- the ever-present cast in Zeno's box (ZenoBoxCast.client) is reused by cutscenes; cleanup puts it back
+	local function adopt(id: string): Model?
+		local f = workspace:FindFirstChild("ZenoBoxCast")
+		local m = f and f:FindFirstChild(id)
+		if m and m:IsA("Model") and m:GetAttribute("Persistent") then
+			if m:GetAttribute("HomePivot") == nil then m:SetAttribute("HomePivot", m:GetPivot()) end
+			return m
+		end
+		return nil
+	end
+
 	function self.actor(id: string): Model?
 		if self.actors[id] then return self.actors[id] end
 		local m: Model?
 		if id == "super_dragon_balls" then m = balls()
 		elseif id == "npc_shenron" then m = shenron()
-		elseif SPOTS[id] then
-			m = fromLibrary(id)
-			if m then stand(m, SPOTS[id], HEIGHT[id]); m.Name = "Story_" .. id; m.Parent = workspace
-			elseif FALLBACK_KIND[id] then m = UIKit.figure(FALLBACK_KIND[id], CFrame.lookAt(SPOTS[id], SPOTS[id] + FACE), 1.3)
-			else m = guard(id, SPOTS[id]) end
+		elseif SPOTS[id] and CAST_KIND[id] and adopt(id) then
+			m = adopt(id)
+		elseif SPOTS[id] and CAST_KIND[id] then
+			local seated = id == "npc_zeno" or id == "npc_zeno_future" -- the Zenos watch from their thrones
+			local fig = CastFigures.build(CAST_KIND[id], CFrame.lookAt(SPOTS[id], SPOTS[id] + FACE), HEIGHT[id], seated)
+			fig.Name = "Story_" .. id; fig.Parent = workspace
+			m = fig
 		end
 		if m then self.actors[id] = m end
 		return m
@@ -210,17 +229,18 @@ function D.new()
 	self.cams = {
 		VoidEstablishWide = function() return CFrame.lookAt(CENTER + Vector3.new(0, 140, 330) * K, CENTER + Vector3.new(0, 20, -40)), 0.01 end,
 		CraneToRing = function() return CFrame.lookAt(CENTER + Vector3.new(60, 45, 120) * K, CENTER), 4 end,
-		PriestMedium = function() local h = focus("npc_grand_priest"); return CFrame.lookAt(h + FACE * 15 + FACE:Cross(Vector3.yAxis) * 6 + Vector3.new(0, 1, 0), h), 1.2 end,
+		PriestMedium = function() local h = focus("npc_grand_priest"); return CFrame.lookAt(h + FACE * 10 + FACE:Cross(Vector3.yAxis) * 4 + Vector3.new(0, 1, 0), h), 1.2 end,
 		PriestPushIn = function() local h = focus("npc_grand_priest"); return CFrame.lookAt(h + FACE * 8 + Vector3.new(0, 0.5, 0), h), 3 end,
 		ThroneLowAngle = function()
-			local z = (focus("npc_zeno") + focus("npc_zeno_future")) / 2
-			return CFrame.lookAt(z - FACE * 30 + Vector3.new(0, -5, 0), z + Vector3.new(0, 3, 0)), 1.5 end, -- Zeno models face -FACE visually: camera on their front side
+			-- low and in front of the thrones (the figures face FACE), inside the box's glass front
+			local z = (SPOTS.npc_zeno + SPOTS.npc_zeno_future) / 2
+			return CFrame.lookAt(z + FACE * 14 + Vector3.new(0, -1, 0), z + Vector3.new(0, 4, 0)), 1.5 end,
 		ZenoTwoShot = function(beat)
-			local z = (focus("npc_zeno") + focus("npc_zeno_future")) / 2
+			local z = (SPOTS.npc_zeno + SPOTS.npc_zeno_future) / 2 + Vector3.new(0, 3, 0)
 			zenoFlip = not zenoFlip
 			local right = FACE:Cross(Vector3.yAxis)
 			local side = if beat.speaker == "npc_zeno" then -2 elseif beat.speaker == "npc_zeno_future" then 2 else 0
-			return CFrame.lookAt(z - FACE * 27 - right * side * 0.5 + Vector3.new(0, 3, 0), z + right * side * 0.4 + Vector3.new(0, 1.5, 0)), 0.8 end, -- faces the Zenos; pulled back so both guards are fully framed
+			return CFrame.lookAt(z + FACE * 11 - right * side * 0.5 + Vector3.new(0, 1.5, 0), z + right * side * 0.4), 0.8 end, -- in front of the Zenos, inside the box
 		RingEdgeTrack = function() return CFrame.lookAt(CENTER + Vector3.new(-120, 12, 90) * K, CENTER + Vector3.new(0, 0, -30)), 6 end,
 		StandsPan = function() return CFrame.lookAt(CENTER + Vector3.new(0, 60, 40) * K, CENTER + Vector3.new(200, 30, 0) * K), 4 end,
 		FighterCuts = function()
@@ -315,7 +335,9 @@ function D.new()
 	end
 
 	self.actions = {
-		Bow = function(beat) local m = self.actors.npc_grand_priest; if m then local b = m:GetPivot()
+		Bow = function(beat) local m = self.actors.npc_grand_priest
+			if m and m:GetAttribute("CastRig") then CastFigures.anim(m, "Bow"); return end
+			if m then local b = m:GetPivot()
 			m:PivotTo(b * CFrame.Angles(math.rad(-20), 0, 0)); task.delay(1.5, function() if m.Parent then m:PivotTo(b) end end) end end,
 		ZenoArrive_GuardsBehind = function()
 			for _, id in { "npc_zeno", "npc_zeno_future" } do
@@ -327,9 +349,16 @@ function D.new()
 					task.delay(1.4, function() for i = 1, 20 do if not m.Parent then return end; m:PivotTo(b + Vector3.new(0, -12 * (1 - i / 20), 0)); task.wait(0.05) end end) end
 			end
 		end,
-		Wave = function(beat) wobble(beat.speaker, 12, 3) end,
+		Wave = function(beat)
+			local m = self.actors[beat.speaker]
+			if m and m:GetAttribute("CastRig") then CastFigures.anim(m, "Wave") else wobble(beat.speaker, 12, 3) end
+		end,
 		Bounce = function(beat) hop(beat.speaker, 1.5, 3, 0.45) end,
-		Clap = function(beat) hop(beat.speaker, 0.8, 4, 0.3); wobble(beat.speaker, 6, 2) end,
+		Clap = function(beat)
+			local m = self.actors[beat.speaker]
+			if m and m:GetAttribute("CastRig") then CastFigures.anim(m, "Clap"); hop(beat.speaker, 0.5, 4, 0.3); return end
+			hop(beat.speaker, 0.8, 4, 0.3); wobble(beat.speaker, 6, 2)
+		end,
 		RingGlow = function()
 			local ring = workspace:FindFirstChild("WorldOfVoid")
 			local p = Instance.new("Part"); p.Shape = Enum.PartType.Cylinder; p.Anchored = true; p.CanCollide = false; p.CanQuery = false
@@ -519,6 +548,7 @@ function D.new()
 		ZenosRaiseHands = function()
 			for _, id in { "npc_zeno", "npc_zeno_future" } do
 				local m = self.actors[id]; if not m then continue end
+				if m:GetAttribute("CastRig") then CastFigures.anim(m, "RaiseHands"); continue end
 				local raised = false
 				for _, n in { "ArmL", "ArmR", "LeftUpperArm", "RightUpperArm" } do
 					local a = m:FindFirstChild(n, true)
@@ -571,7 +601,16 @@ function D.new()
 	}
 
 	function self.cleanup()
-		for _, m in self.actors do m:Destroy() end
+		for _, m in self.actors do
+			if m:GetAttribute("Persistent") then
+				local home = m:GetAttribute("HomePivot")
+				if typeof(home) == "CFrame" then m:PivotTo(home) end
+				m:SetAttribute("HomePivot", nil)
+				CastFigures.anim(m, "Rest")
+			else
+				m:Destroy()
+			end
+		end
 		for _, f in self.fx do f:Destroy() end
 		self.actors = {}; self.fx = {}
 	end
@@ -616,6 +655,19 @@ function D.play(dir: any, beats: { any }, ctx: any)
 end
 
 -- ===== v3 (db-story): shared helpers for live ToP cinematics =====
+-- The ever-present cast's placement (same as the cutscenes'): { [id] = { kind, cf, height, seated } }
+function D.castLayout(): { [string]: { kind: string, cf: CFrame, height: number, seated: boolean } }
+	readLayout()
+	local out = {}
+	for id, kind in CAST_KIND do
+		local pos = SPOTS[id]
+		if pos then
+			out[id] = { kind = kind, cf = CFrame.lookAt(pos, pos + FACE), height = HEIGHT[id], seated = id == "npc_zeno" or id == "npc_zeno_future" }
+		end
+	end
+	return out
+end
+
 function D.pick(pool: any): { speaker: string?, text: string }?
 	if type(pool) ~= "table" or #pool == 0 then return nil end
 	local e = pool[math.random(1, #pool)]

@@ -318,7 +318,8 @@ function Arena.Resize(teamCount: number, playerCount: number, universes: {number
 	-- Grand Priest standing front-left, two guards behind. Spots match CutsceneDirector offsets from Spawn_Zeno
 	-- (zcf = Spawn_Zeno pos facing ring; x right, -z toward ring).
 	local zenoF = folder("ZenoBox", arena)
-	local zl = CFrame.lookAt(info.zenoPos, Vector3.new(0, Y, 0))
+	-- level, facing the ring (it used to pitch ~37 degrees down at the ring, tilting the floor, thrones and cast)
+	local zl = CFrame.lookAt(info.zenoPos, Vector3.new(0, info.zenoPos.Y, 0))
 	local GOLD, WHITE, PURP = Color3.fromRGB(230, 190, 80), Color3.fromRGB(240, 236, 248), Color3.fromRGB(110, 70, 200)
 	part({ Name = "Zeno_Floor", Size = Vector3.new(60, 4, 40), CFrame = zl, Material = Enum.Material.Marble, Color = WHITE }, zenoF, { "ZenoBox" })
 	part({ Name = "Zeno_Platform", Size = Vector3.new(70, 6, 50), CFrame = zl * CFrame.new(0, -5, 0), Material = Enum.Material.Marble,
@@ -351,7 +352,8 @@ function Arena.Resize(teamCount: number, playerCount: number, universes: {number
 	npcSpot("NPC_ZenoGuard_1", "ZenoGuard", "npc_zeno_guard_1", -15, 9)
 	npcSpot("NPC_ZenoGuard_2", "ZenoGuard", "npc_zeno_guard_2", 15, 9)
 	npcSpot("NPC_GrandPriest", "GrandPriest", "npc_grand_priest", -20, -6)
-	spawnPad("Spawn_Zeno", (zl * CFrame.new(0, 2.5, 0)).Position, zenoF, "ZenoSpawn", false)
+	local zenoSpawn = spawnPad("Spawn_Zeno", (zl * CFrame.new(0, 2.5, 0)).Position, zenoF, "ZenoSpawn", false)
+	zenoSpawn.Transparency = 1 -- a marker for cutscene placement; it should not glow on the box floor
 
 	-- Zones
 	local zonesF = folder("Zones", arena)
