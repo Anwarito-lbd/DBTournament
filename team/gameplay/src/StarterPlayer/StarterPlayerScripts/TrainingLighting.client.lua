@@ -43,8 +43,18 @@ end
 local PRESETS = loadPresets()
 
 local KEYS = { "ClockTime", "Ambient", "OutdoorAmbient", "FogColor", "FogStart", "FogEnd", "Brightness" }
-local original: { [string]: any } = {}
-for _, k in KEYS do original[k] = (Lighting :: any)[k] end
+local startup: { [string]: any } = {}
+for _, k in KEYS do startup[k] = (Lighting :: any)[k] end
+-- v11: the arena art pass publishes its base look as Lighting attributes (Base_<key>); restore to those live values,
+-- falling back to the join-time snapshot (which can predate the art pass and hold stale place values)
+local function baseLook(): { [string]: any }
+	local out = {}
+	for _, k in KEYS do
+		local v = Lighting:GetAttribute("Base_" .. k)
+		out[k] = if v ~= nil then v else startup[k]
+	end
+	return out
+end
 
 local current: Tween? = nil
 local function apply(props: { [string]: any }, time: number)
@@ -61,10 +71,16 @@ local function refresh()
 	local area = lp:GetAttribute("TrainingArea")
 	local name = lp:GetAttribute("LightingPreset") :: string?
 	local inRaid = lp:GetAttribute("RaidId") ~= nil -- v8b: raids set LightingPreset without a TrainingArea
-	if (area == nil and not inRaid) or name == nil or name == "Lobby" then apply(original, 0.6); return end
+	if (area == nil and not inRaid) or name == nil or name == "Lobby" then apply(baseLook(), 0.6); return end
 	local preset = PRESETS[name] or FALLBACK[name]
-	if preset then apply(preset, 0.6) else apply(original, 0.6) end
+	if preset then apply(preset, 0.6) else apply(baseLook(), 0.6) end
 end
+-- a new round re-runs the art pass: follow its base look while not inside a training area or raid
+Lighting.AttributeChanged:Connect(function(attr)
+	if attr:sub(1, 5) == "Base_" and lp:GetAttribute("TrainingArea") == nil and lp:GetAttribute("RaidId") == nil then
+		apply(baseLook(), 0.6)
+	end
+end)
 lp:GetAttributeChangedSignal("TrainingArea"):Connect(refresh)
 lp:GetAttributeChangedSignal("LightingPreset"):Connect(refresh)
 lp:GetAttributeChangedSignal("RaidId"):Connect(refresh)
