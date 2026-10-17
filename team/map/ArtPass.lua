@@ -29,9 +29,13 @@ ArtPass.Palette = {
 local PAL = ArtPass.Palette
 
 -- Nebula skybox (team/map/skybox, from the CC-BY "FREE - SkyBox Space Nebula" by paul_paul_paul; credit in
--- Shared/Credits.lua). Set to the six uploaded image ids ({ Ft = "rbxassetid://...", ... }) once uploaded; nil keeps
--- the procedural starfield. Roblox renders a skybox black at night, so with faces the arena runs at a daytime clock.
-ArtPass.SkyFaces = nil :: { [string]: string }?
+-- Shared/Credits.lua), uploaded 2026-10-16. nil would bring back the procedural starfield. Roblox renders a skybox
+-- black at night, so with faces the arena runs at a daytime clock (sun hidden).
+ArtPass.SkyFaces = {
+	Ft = "rbxassetid://131254018862298", Bk = "rbxassetid://92127795120747",
+	Lf = "rbxassetid://81736799508352", Rt = "rbxassetid://103267933488248",
+	Up = "rbxassetid://74354703181311", Dn = "rbxassetid://88305535630097",
+} :: { [string]: string }?
 
 -- Exactly one Sky / Atmosphere / grade in Lighting. Leftovers from older builds (untagged, saved in the place) are
 -- moved to ServerStorage.LightingArchive at runtime, never deleted, so the place file keeps them.
@@ -198,7 +202,7 @@ function ArtPass.Apply(): string
 	local faces = ArtPass.SkyFaces
 	Lighting.ClockTime = if faces then 14 else 0
 	Lighting.GeographicLatitude = 30
-	Lighting.Brightness = if faces then 2 else 3
+	Lighting.Brightness = if faces then 1.3 else 3 -- daytime sun: keep the pale stone from washing out
 	Lighting.Ambient = rgb(150, 146, 162)
 	Lighting.OutdoorAmbient = rgb(172, 168, 184)
 	Lighting.ExposureCompensation = 0.25

@@ -9,5 +9,5 @@ Six 1024 px faces for the arena's `WOV_Sky` (see `ArtPass.SkyFaces` in `../ArtPa
   procedural star layer.
 - **Face convention** (checked in Studio with labelled test faces): Ft = -Z, Bk = +Z, Lf = +X, Rt = -X, none mirrored.
   On Up the image's top edge points to +X; on Dn it points to -X.
-- **Not uploaded yet.** Roblox renders a skybox black at night, so once the six image ids are set,
-  ArtPass switches the arena to a daytime clock with the sun hidden.
+- **Uploaded 2026-10-16**; the ids are in `ArtPass.SkyFaces`. Roblox renders a skybox black at night, so
+  ArtPass runs the arena at a daytime clock with the sun hidden.
