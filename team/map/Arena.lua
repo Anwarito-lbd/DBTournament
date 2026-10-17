@@ -226,15 +226,20 @@ function Arena.Resize(teamCount: number, playerCount: number, universes: {number
 		local dia = 2 * R * (1 - i * 0.2)
 		part({ Name = "Ring_Under_" .. i, Shape = "Cylinder", Size = Vector3.new(15, dia, dia),
 			CFrame = vcyl(Vector3.new(0, Y - CFG.RING_THICK - i * 15 + 7.5, 0)), Material = Enum.Material.Rock,
-			Color = Color3.fromRGB(90, 85, 100), CanCollide = false, CanTouch = false, CanQuery = false }, ringF)
+			Color = Color3.fromRGB(120 - i * 8, 108 - i * 7, 132 - i * 8), CanCollide = false, CanTouch = false, CanQuery = false }, ringF)
 	end
-	-- pillars: 8 + 2 per 50 studs over base
+	-- pillars: 8 + 2 per 50 studs over base. v4 (Null Realm look): tall square columns of varied height, every
+	-- fourth one already broken (Broken attribute, no cap) so the stage reads as battle-worn from the first second.
 	local np = 8 + 2 * math.floor((R - CFG.BASE_RADIUS) / 50)
+	local HEIGHTS = { 38, 28, 44, 14, 34, 24, 40, 12 }
 	for i = 0, np - 1 do
 		local a = math.rad((i + 0.5) * 360 / np)
 		local r = R - 20
-		part({ Name = "Ring_Pillar_" .. (i + 1), Size = Vector3.new(8, 30, 8),
-			CFrame = CFrame.new(math.cos(a) * r, Y + 15, math.sin(a) * r), Material = Enum.Material.Marble }, ringF, { "ArenaCover" })
+		local h = HEIGHTS[(i % #HEIGHTS) + 1]
+		local pillar = part({ Name = "Ring_Pillar_" .. (i + 1), Size = Vector3.new(9, h, 9),
+			CFrame = CFrame.new(math.cos(a) * r, Y + h / 2, math.sin(a) * r) * CFrame.Angles(0, -a, 0), Material = Enum.Material.Concrete },
+			ringF, { "ArenaCover" })
+		pillar:SetAttribute("Broken", h <= 14)
 	end
 
 	-- Fighter spawns: P pads at r=0.65R, contiguous arc per team
@@ -256,7 +261,8 @@ function Arena.Resize(teamCount: number, playerCount: number, universes: {number
 		local uNum = (universes and universes[t]) or t
 		local col = UNIVERSE_COLORS[((uNum - 1) % 12) + 1]
 		local a = math.rad(((t - 0.5) / T) * 360) -- arc midpoint of team t
-		local pos = Vector3.new(math.cos(a) * info.standRadius, Y + 40, math.sin(a) * info.standRadius)
+		-- v4: stands float well above the ring so spectators and eliminated players watch the fight from above
+		local pos = Vector3.new(math.cos(a) * info.standRadius, Y + 60 + R * 0.1, math.sin(a) * info.standRadius)
 		local look = CFrame.lookAt(pos, Vector3.new(0, pos.Y, 0))
 		local uf = folder(string.format("Stand_U%02d", t), standsF)
 		uf:SetAttribute("Team", t); uf:SetAttribute("Universe", t)
