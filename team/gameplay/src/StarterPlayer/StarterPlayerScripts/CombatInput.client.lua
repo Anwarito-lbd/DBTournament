@@ -371,10 +371,17 @@ local function executeM1()
 		end
 	end
 
-	-- Animation per combo step. The clips now carry their own contact-frame feedback (swing whoosh, hit
-	-- SFX, afterimage smear, hitstop, impact frame, camera shake, FOV), so the manual duplicates that used
-	-- to sit here are gone - they would double every hit sound and camera kick. Airborne uses the air combo.
-	if isAirborne() then
+	-- The 4th hit is a finisher (server rules, Shared/FightRules): airborne spikes down, jump held on the ground
+	-- launches up, otherwise a blow-away into a knockdown. The hint only steers it; the server decides.
+	local branch: string? = nil
+	if comboStep == 4 then
+		branch = if isAirborne() then "down" elseif UserInputService:IsKeyDown(Enum.KeyCode.Space) then "up" else nil
+	end
+	-- Animation per combo step. Clip markers are cosmetic (whoosh, smear); hit feedback comes from GameFeel on the
+	-- server's confirmed hit. Airborne uses the air combo.
+	if branch == "up" then
+		playPose("Launcher", 1.15, "M1")
+	elseif isAirborne() then
 		playPose("AirCombo", 1.15, "M1")
 	elseif comboStep == 1 then
 		playPose("M1_1", 1.35, "M1")
@@ -388,7 +395,7 @@ local function executeM1()
 
 	comboStep = if comboStep >= 4 then 1 else comboStep + 1
 
-	ClientAPI.requestMove("M1", aimPos)
+	ClientAPI.requestMove("M1", aimPos, nil, branch)
 end
 
 local function executeHeavy()

@@ -2,7 +2,8 @@
 -- ModuleScript: ServerScriptService.Modules.Combat  (v4: skill expression + compressed balance)
 -- Every action is client INTENT -> server validates state, cooldown, ki, range, timing.
 -- Remotes (client -> server):
---   RequestMove(moveId, targetPos, origin?)  Block(isDown)  Dash(dir)  Vanish(dir?)  ComboBreak()  StruggleInput()
+--   RequestMove(moveId, targetPos, origin?, branch?)  Block(isDown)  Dash(dir)  Vanish(dir?)  ComboBreak()  StruggleInput()
+--   (branch: "up" / "down" hint for the 4th M1 of a chain; see Shared/FightRules)
 -- Remotes (server -> client): PlayVFX(kind, character, arg)  CombatEvent(kind, data)  TeamCombo(...)
 -- Balance: damage ratio = clamp((PL_att/PL_vic)^0.25, 1/1.35, 1.35)  (tier gap compression)
 -- Counterplay by tier (Config.TIER_RULES): hurtbox scale, ki regen, recovery.
@@ -22,6 +23,7 @@ local TrainingBots = require(script.Parent.TrainingBots) -- v7 Gravity Room spar
 local BossNPC = require(script.Parent.BossNPC) -- v8 raid / story bosses
 local StatResolver = require(game:GetService("ReplicatedStorage").Shared.StatResolver)
 local EpisodeLogic = require(game:GetService("ReplicatedStorage").Shared.EpisodeLogic) -- v10 boss struggles
+local FightRules = require(game:GetService("ReplicatedStorage").Shared.FightRules) -- 4th-hit branches, knockdown, rewards
 
 local Combat = {}
 local SK = Config.SKILL
@@ -65,6 +67,15 @@ type CS = {
 	lastAutoDodge: number?,
 	blindUntil: number?,
 	barrierUntil: number?,
+	-- fight-research additions (Shared/FightRules)
+	m1Step: number?,
+	m1T: number?,
+	knockdownUntil: number?,
+	kdToken: number?,
+	kiBurstUntil: number?,
+	recentHits: { [Player]: number }?,
+	teamBurstReady: boolean?,
+	lastTeamBurst: number?,
 }
 local cs: { [Player]: CS } = {}
 
@@ -102,6 +113,8 @@ local function publish(p: Player)
 	p:SetAttribute("Guard", math.floor(s.guard))
 	p:SetAttribute("Blocking", s.blocking)
 	p:SetAttribute("Stunned", s.stunUntil > os.clock())
+	p:SetAttribute("KiBurst", if (s.kiBurstUntil or 0) > os.clock() then true else nil)
+	p:SetAttribute("TeamBurstReady", if s.teamBurstReady then true else nil)
 end
 
 local function rootOf(p: Player): BasePart?
@@ -189,6 +202,50 @@ local function knock(p: Player, vel: Vector3)
 			pcall(function()
 				root:SetNetworkOwner(p)
 			end)
+		end
+	end)
+end
+
+-- ===== Knockdown (FightRules): the body goes limp, the fighter can't act; up after the timer or the combo breaker =====
+local function getUp(p: Player)
+	local s = cs[p]
+	if s then
+		s.knockdownUntil = math.min(s.knockdownUntil or 0, os.clock()) -- get-up immunity counts from now
+		s.kdToken = (s.kdToken or 0) + 1
+		s.stunUntil = math.min(s.stunUntil, os.clock())
+	end
+	p:SetAttribute("KnockedDown", nil)
+	local h, r = humOf(p), rootOf(p)
+	if h then
+		h.PlatformStand = false
+	end
+	if r and h and h.Health > 0 then
+		-- stand upright, keeping the facing
+		local look = Vector3.new(r.CFrame.LookVector.X, 0, r.CFrame.LookVector.Z)
+		look = if look.Magnitude > 0.05 then look.Unit else Vector3.zAxis
+		r.CFrame = CFrame.lookAt(r.Position + Vector3.new(0, 1.5, 0), r.Position + Vector3.new(0, 1.5, 0) + look)
+		r.AssemblyAngularVelocity = Vector3.zero
+	end
+end
+
+local function knockDown(p: Player, seconds: number)
+	local s = S(p)
+	local now = os.clock()
+	s.knockdownUntil = now + seconds
+	s.stunUntil = math.max(s.stunUntil, now + seconds)
+	s.blocking = false
+	s.kdToken = (s.kdToken or 0) + 1
+	local token = s.kdToken
+	p:SetAttribute("KnockedDown", true)
+	local h = humOf(p)
+	if h then
+		h.PlatformStand = true
+	end
+	task.delay(seconds, function()
+		local cur = cs[p]
+		if cur and cur.kdToken == token and p.Parent then
+			getUp(p)
+			publish(p)
 		end
 	end)
 end
@@ -296,6 +353,15 @@ function Combat.resolveHit(att: Player, vic: Player, mv: any, power: number): st
 		if mv.parryable and now - vs.blockSince <= SK.ParryWindow then
 			as.stunUntil = now + SK.ParryStun
 			vs.ki = math.min(Config.KI.max, vs.ki + Config.KI.parryGain)
+			-- perfect-block reward: the first parry primes a Ki Burst; a parry while primed vanishes behind the attacker
+			if FightRules.parryReward(vs.kiBurstUntil, now) == "vanish" then
+				vs.invulnUntil = now + SK.VanishCounterIFrames
+				vs.blocking = false
+				local dest = ar.Position - ar.CFrame.LookVector * 4
+				vr.CFrame = CFrame.lookAt(dest, Vector3.new(ar.Position.X, dest.Y, ar.Position.Z))
+				event("VanishCounter", { vic.UserId, att.UserId })
+			end
+			vs.kiBurstUntil = now + SK.KiBurstWindow
 			publish(att)
 			publish(vic)
 			QuestService.track(vic, "parry", 1)
@@ -327,7 +393,16 @@ function Combat.resolveHit(att: Player, vic: Player, mv: any, power: number): st
 	tag()
 	vh:TakeDamage(dmg)
 	DamagedHook:Fire(vic, att, dmg)
-	local armored = vs.armorUntil > now -- Final Explosion charge: no hitstun/knockback
+	-- anti-team burst: enough different attackers in a short window unlock a free burst for the victim
+	local hits = vs.recentHits or {}
+	vs.recentHits = hits
+	hits[att] = now
+	local tb = SK.TeamBurst
+	if not vs.teamBurstReady and FightRules.teamBurstReady(hits, now, tb.window, tb.attackers, vs.lastTeamBurst, tb.cooldown) then
+		vs.teamBurstReady = true
+	end
+	-- Final Explosion charge (armour), being down, or just up again: no hitstun / knockback, so nobody gets looped
+	local armored = vs.armorUntil > now or FightRules.isProtected(vs.knockdownUntil, now, SK.GetUpImmunity)
 	if not armored then
 		vs.stunUntil = math.max(vs.stunUntil, now + (mv.hitstun or SK.Hitstun))
 	end
@@ -339,10 +414,26 @@ function Combat.resolveHit(att: Player, vic: Player, mv: any, power: number): st
 		* math.sqrt(ratio)
 		* (vrace.knockbackTaken or 1)
 		* (if RaceRuntime.isActive(att, "GiantForm") then 1.3 else 1)
-	if kb > 0 and not armored then
+	if not armored and (kb > 0 or mv.up or mv.down) then
 		local flat = Vector3.new(vr.Position.X - ar.Position.X, 0, vr.Position.Z - ar.Position.Z)
 		local dir = if flat.Magnitude > 0.01 then flat.Unit else ar.CFrame.LookVector
-		knock(vic, (dir + Vector3.new(0, 0.35, 0)).Unit * kb)
+		if mv.up then -- launch: straight up for an air follow-up
+			knock(vic, dir * kb + Vector3.new(0, mv.up, 0))
+		elseif mv.down then -- spike: driven into the stage, which cracks, then a small bounce
+			knock(vic, dir * kb + Vector3.new(0, -mv.down, 0))
+			Arena.damageAt(vr.Position - Vector3.new(0, 2.5, 0), mv.crackRadius or 8, (mv.crackPower or 50) * power)
+			task.delay(0.15, function()
+				local r = rootOf(vic)
+				if r then
+					r.AssemblyLinearVelocity = Vector3.new(0, 22, 0) + dir * 6
+				end
+			end)
+		else
+			knock(vic, (dir + Vector3.new(0, 0.35, 0)).Unit * kb)
+		end
+		if mv.knockdown then
+			knockDown(vic, mv.knockdown)
+		end
 	end
 	publish(vic)
 	-- v1.1 GameFeel: clients play hitstop/shake/impact for attacker+victim (data: vic, att, dmg, kb, ko)
@@ -853,6 +944,14 @@ function Combat.npcHit(npc: Model, vic: Player, mv: any): string
 	if vs.blocking and facing and vs.stunUntil <= now then
 		if now - vs.blockSince <= SK.ParryWindow then
 			vs.ki = math.min(Config.KI.max, vs.ki + Config.KI.parryGain)
+			if FightRules.parryReward(vs.kiBurstUntil, now) == "vanish" then -- second parry while primed
+				vs.invulnUntil = now + SK.VanishCounterIFrames
+				vs.blocking = false
+				local dest = nr.Position - nr.CFrame.LookVector * 4
+				vr.CFrame = CFrame.lookAt(dest, Vector3.new(nr.Position.X, dest.Y, nr.Position.Z))
+				event("VanishCounter", { vic.UserId, 0 })
+			end
+			vs.kiBurstUntil = now + SK.KiBurstWindow
 			publish(vic)
 			event("Parry", { vic.UserId, 0 })
 			QuestService.track(vic, "parry", 1)
@@ -886,7 +985,7 @@ function Combat.takeKi(p: Player, n: number): number
 	return t
 end
 
-RequestMove.OnServerEvent:Connect(function(p, moveId, targetPos, origin)
+RequestMove.OnServerEvent:Connect(function(p, moveId, targetPos, origin, branch)
 	if type(moveId) ~= "string" or typeof(targetPos) ~= "Vector3" then
 		return
 	end
@@ -987,6 +1086,18 @@ RequestMove.OnServerEvent:Connect(function(p, moveId, targetPos, origin)
 	end
 
 	local execId, execMv, power = moveId, mv, 1
+	-- the 4th M1 of a chain is a finisher: blow-away (knockdown), launch (jump held) or spike (airborne)
+	local finisherKind: string? = nil
+	if moveId == "M1" then
+		s.m1Step = FightRules.nextM1Step(s.m1Step, s.m1T, now, SK.M1ChainWindow)
+		s.m1T = now
+		if s.m1Step == 4 then
+			local h = humOf(p)
+			local airborne = h ~= nil and h.FloorMaterial == Enum.Material.Air
+			finisherKind = FightRules.finisher(branch, airborne)
+			execMv = FightRules.applyFinisher(mv, finisherKind :: string, SK.Finisher)
+		end
+	end
 	if mv.kind == "copy" then
 		-- Moro: copy the nearest enemy-to-target's last move (within memory) at reduced power
 		local victim, best = nil, math.huge
@@ -1015,9 +1126,19 @@ RequestMove.OnServerEvent:Connect(function(p, moveId, targetPos, origin)
 	if not spend(p, (mv.ki or 0) * (race.kiCostMult or 1)) then
 		return
 	end
+	-- perfect-block reward: the next damaging attack after a parry is critical, whatever it hits
+	local kiBurst = (s.kiBurstUntil or 0) > now and (execMv.damage or 0) > 0
+	if kiBurst then
+		power *= SK.KiBurstMult
+		s.kiBurstUntil = 0
+		event("KiBurst", { p.UserId })
+	end
 	s.cds[moveId] = now
-	s.recoveryUntil = now + (mv.recovery or 0) * Combatant.tierRules(p).recovery
+	s.recoveryUntil = now + (execMv.recovery or 0) * Combatant.tierRules(p).recovery
 	announceMove(p, moveId)
+	if finisherKind then
+		event("Finisher", { p.UserId, finisherKind })
+	end
 	if mv.kind ~= "copy" then
 		s.lastMove, s.lastMoveT = moveId, now
 	end
@@ -1111,27 +1232,44 @@ BreakRemote.OnServerEvent:Connect(function(p)
 	end
 	local s = S(p)
 	local now = os.clock()
-	if s.locked or s.stunUntil <= now or now - s.lastBreak < SK.BreakerCooldown then
-		return
-	end -- only while in hitstun
-	if not spend(p, SK.BreakerKi) then
+	if s.locked then
 		return
 	end
-	s.lastBreak = now
+	-- anti-team burst: when ganged up on, the breaker is free, bigger and usable even without being stunned
+	local teamBurst = s.teamBurstReady == true
+	if not teamBurst then
+		if s.stunUntil <= now or now - s.lastBreak < SK.BreakerCooldown then
+			return
+		end -- only while in hitstun (a knockdown counts)
+		if not spend(p, SK.BreakerKi) then
+			return
+		end
+		s.lastBreak = now
+	else
+		s.teamBurstReady = false
+		s.lastTeamBurst = now
+		s.recentHits = {}
+	end
+	if (s.knockdownUntil or 0) > now then
+		getUp(p) -- escape the knockdown
+	end
+	local tb = SK.TeamBurst
+	local radius = if teamBurst then tb.radius else SK.BreakerRadius
+	local push = if teamBurst then tb.push else SK.BreakerPush
 	s.stunUntil = now
-	s.invulnUntil = now + SK.BreakerIFrames
+	s.invulnUntil = now + (if teamBurst then tb.iframes else SK.BreakerIFrames)
 	lastHit[p.Character :: Instance] = nil -- resets team-combo chain on me
 	local root = rootOf(p) :: BasePart
 	for _, q in enemies(p) do
 		local qr = rootOf(q)
-		if qr and (qr.Position - root.Position).Magnitude <= SK.BreakerRadius then
+		if qr and (qr.Position - root.Position).Magnitude <= radius then
 			local flat = Vector3.new(qr.Position.X - root.Position.X, 0, qr.Position.Z - root.Position.Z)
 			if flat.Magnitude > 0.01 then
-				knock(q, (flat.Unit + Vector3.new(0, 0.3, 0)).Unit * SK.BreakerPush)
+				knock(q, (flat.Unit + Vector3.new(0, 0.3, 0)).Unit * push)
 			end
 		end
 	end
-	event("ComboBreaker", { p.UserId })
+	event(if teamBurst then "TeamBurst" else "ComboBreaker", { p.UserId })
 	publish(p)
 end)
 
@@ -1207,6 +1345,9 @@ UseItemRemote.OnServerEvent:Connect(function(p, item)
 end)
 
 function Combat.resetPlayer(p: Player)
+	if cs[p] and (cs[p].knockdownUntil or 0) > os.clock() then
+		getUp(p)
+	end
 	cs[p] = nil
 	S(p)
 	publish(p)

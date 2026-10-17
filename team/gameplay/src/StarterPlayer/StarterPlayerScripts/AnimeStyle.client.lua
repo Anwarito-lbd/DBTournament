@@ -307,18 +307,36 @@ ClientAPI.onCombatEvent:Connect(function(kind, data)
 		else act(ch, "HurtLight", "Hurt", 1.35) end
 		return
 	end
+	if kind == "Finisher" then -- the 4th M1 of a chain: launch, spike or blow-away (Shared/FightRules)
+		local f = data[2]
+		act(ch, if f == "launch" then "Launcher" elseif f == "spike" then "AirCombo" else "M1_4", "M1", 1.15)
+		return
+	end
 	if kind == "Dash" then act(ch, "Dash", "Dash", 1.5); afterimage(ch); return end
 	if kind == "Vanish" or kind == "DashCancel" then
 		act(ch, "Dash", kind, 1.5)
 		if kind == "DashCancel" then afterimage(ch) end -- the vanish smear and speed lines come from GameFeel
 	end
 end)
--- guard pose while blocking, flight idle while airborne/flying: looped while the state lasts, released after
+-- knocked down: the fall pose holds while down; guard pose while blocking, flight idle while airborne/flying:
+-- looped while the state lasts, released after
+local downPlayed: { [Model]: boolean } = {}
 RunService.Heartbeat:Connect(function()
 	for _, p in Players:GetPlayers() do
 		local ch = p.Character
 		if ch then
 			local cur = FightAnimator.current(ch)
+			if p:GetAttribute("KnockedDown") == true then
+				if not downPlayed[ch] then
+					downPlayed[ch] = true
+					act(ch, "KO", "Down", 0.75)
+				end
+				continue
+			elseif downPlayed[ch] then
+				downPlayed[ch] = nil
+				if cur == "KO" then FightAnimator.stop(ch, 0.2) end
+				cur = nil
+			end
 			if p:GetAttribute("Blocking") == true then
 				if cur == nil then act(ch, "Guard", "Guard", 1.2, true) end
 			elseif cur == "Guard" then

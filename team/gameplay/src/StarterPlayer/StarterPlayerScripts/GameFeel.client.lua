@@ -133,6 +133,40 @@ ClientAPI.onCombatEvent:Connect(function(kind, data)
 		if r then
 			C.Shockwave(fx(), CFrame.new(r.Position), 1, if kind == "GuardBreak" then 12 else 7, Color3.fromRGB(200, 230, 255), 0.3)
 		end
+	elseif kind == "KiBurst" then
+		-- perfect-block reward spent: this attack is critical (gold burst on the attacker)
+		local att = charOf(data[1])
+		local r = rootOf(att)
+		if r then
+			C.Shockwave(fx(), CFrame.new(r.Position), 1, 12, Color3.fromRGB(255, 214, 90), 0.35)
+		end
+		if data[1] == player.UserId then
+			C.FOVPunch(10)
+		end
+	elseif kind == "VanishCounter" then
+		-- second perfect block while primed: the defender vanishes behind the attacker
+		local m = charOf(data[1])
+		if m then
+			C.Afterimage(m, Color3.fromRGB(200, 230, 255), 0.45, 0.35)
+		end
+		if data[1] == player.UserId then
+			C.SpeedLines(0.3, Color3.new(1, 1, 1), 30)
+			C.FOVPunch(7)
+		end
+	elseif kind == "TeamBurst" then
+		-- anti-team burst: a wide push that clears the gang-up
+		local r = rootOf(charOf(data[1]))
+		if r then
+			C.Shockwave(fx(), CFrame.new(r.Position), 2, 36, Color3.fromRGB(150, 220, 255), 0.45)
+			local res = workspace:Raycast(r.Position, Vector3.new(0, -8, 0), C.rayParams({ charOf(data[1]) :: Model, fx() }))
+			if res then
+				C.DebrisBurst(fx(), res.Position, 10, 34, nil, 2)
+			end
+		end
+		if data[1] == player.UserId then
+			C.CameraShake(0.6, 0.4)
+			C.FOVPunch(9)
+		end
 	elseif kind == "Dodged" then
 		local m = charOf(data[1])
 		if m then
@@ -243,3 +277,32 @@ RunService.Heartbeat:Connect(function(dt)
 		st.Visible = false
 	end
 end)
+
+-- ===== state prompts: perfect-block reward primed / anti-team burst ready (server attributes) =====
+local prompt = Instance.new("TextLabel")
+prompt.Name = "FightPrompt"
+prompt.AnchorPoint = Vector2.new(0.5, 1)
+prompt.Position = UDim2.fromScale(0.5, 0.74)
+prompt.Size = UDim2.fromOffset(420, 30)
+prompt.BackgroundTransparency = 1
+prompt.Font = Enum.Font.GothamBlack
+prompt.TextScaled = true
+prompt.TextStrokeTransparency = 0.2
+prompt.Visible = false
+prompt.Parent = gui
+local function refreshPrompt()
+	if player:GetAttribute("TeamBurstReady") then
+		prompt.Text = "BURST READY  -  COMBO BREAKER"
+		prompt.TextColor3 = Color3.fromRGB(150, 220, 255)
+		prompt.Visible = true
+	elseif player:GetAttribute("KiBurst") then
+		prompt.Text = "KI BURST  -  NEXT HIT IS CRITICAL"
+		prompt.TextColor3 = Color3.fromRGB(255, 214, 90)
+		prompt.Visible = true
+	else
+		prompt.Visible = false
+	end
+end
+player:GetAttributeChangedSignal("TeamBurstReady"):Connect(refreshPrompt)
+player:GetAttributeChangedSignal("KiBurst"):Connect(refreshPrompt)
+refreshPrompt()

@@ -166,8 +166,15 @@ function DevBots.hit(att: Player, m: Model, mv: any, power: number)
 		local missing = 1 - hum.Health / math.max(1, hum.MaxHealth)
 		local kb = mv.kb * (1 + 1.5 * missing) * 1.6
 		hum:ChangeState(Enum.HumanoidStateType.Physics)
-		r.AssemblyLinearVelocity = d * kb + Vector3.new(0, kb * 0.35, 0)
-		task.delay(0.6, function() if hum.Parent and hum.Health > 0 then hum:ChangeState(Enum.HumanoidStateType.GettingUp) end end)
+		-- 4th-hit finishers (Shared/FightRules): launch straight up, spike down, or a longer knockdown
+		local vel = d * kb + Vector3.new(0, kb * 0.35, 0)
+		if mv.up then vel = d * kb + Vector3.new(0, mv.up, 0) elseif mv.down then vel = d * kb + Vector3.new(0, -mv.down, 0) end
+		r.AssemblyLinearVelocity = vel
+		m:SetAttribute("KnockedDown", if mv.knockdown then true else nil)
+		task.delay(mv.knockdown or 0.6, function()
+			if hum.Parent and hum.Health > 0 then hum:ChangeState(Enum.HumanoidStateType.GettingUp) end
+			if m.Parent then m:SetAttribute("KnockedDown", nil) end
+		end)
 	end
 end
 

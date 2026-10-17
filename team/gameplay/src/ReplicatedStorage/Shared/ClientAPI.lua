@@ -18,7 +18,8 @@ function ClientAPI.kick(userId: number) r("QueueRequest"):FireServer("Kick", use
 function ClientAPI.pickCharacter(charId: string) r("PickCharacter"):FireServer(charId) end
 function ClientAPI.setCharging(on: boolean) r("KiCharge"):FireServer(on) end
 function ClientAPI.transform(formId: string) r("Transform"):FireServer(formId) end
-function ClientAPI.requestMove(moveId: string, targetPos: Vector3, origin: Vector3?) r("RequestMove"):FireServer(moveId, targetPos, origin) end
+-- branch: "up" / "down" hint for the 4th M1 of a chain (server decides, Shared/FightRules)
+function ClientAPI.requestMove(moveId: string, targetPos: Vector3, origin: Vector3?, branch: string?) r("RequestMove"):FireServer(moveId, targetPos, origin, branch) end
 function ClientAPI.giftEnergy(targetUserId: number) r("GiftEnergy"):FireServer(targetUserId) end
 function ClientAPI.spectate(targetUserId: number) r("SpectateRequest"):FireServer(targetUserId) end
 function ClientAPI.requestFusion(method: "Dance" | "Potara", partnerUserId: number) r("FusionRequest"):FireServer(method, partnerUserId) end

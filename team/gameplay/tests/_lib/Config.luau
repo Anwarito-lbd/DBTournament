@@ -13,6 +13,9 @@ Config.DEV_MODE = true
 Config.DEV_BOTS = 2 -- 1..3 bots on an enemy universe when only one player is present
 Config.DEV_BOT_HP = 100
 Config.INTRO_MAX = 110 -- seconds; server waits for all players to skip or this cap
+-- PACING FIX (2026-10-14): the full intro replayed EVERY round at 110 s. Repeat rounds now use this instead,
+-- so only a player who has not yet seen the story beat has to sit through the long version.
+Config.INTRO_MAX_REPEAT = 12
 Config.ENDING_MAX = 70 -- seconds for ending cutscene + wish choice
 -- Super Dragon Ball wishes (StoryDialogue.Wishes). Rewards are server-applied; values are v1 placeholders.
 Config.WISHES = {
@@ -145,21 +148,15 @@ local SAIYAN = {
 Config.ROSTER = {
 	[7] = {
 		c("u7_goku", "Goku", 1000, 1, SAIYAN),
-		c(
-			"u7_vegeta",
-			"Vegeta",
-			1000,
-			1,
-			{
-				"SuperSaiyan",
-				"SuperSaiyan2",
-				"SuperSaiyanGod",
-				"SuperSaiyanBlue",
-				"SuperSaiyan4",
-				"SSBEvolved",
-				"UltraEgo",
-			}
-		),
+		c("u7_vegeta", "Vegeta", 1000, 1, {
+			"SuperSaiyan",
+			"SuperSaiyan2",
+			"SuperSaiyanGod",
+			"SuperSaiyanBlue",
+			"SuperSaiyan4",
+			"SSBEvolved",
+			"UltraEgo",
+		}),
 		c("u7_gohan", "Gohan", 950, 1, { "SuperSaiyan", "SuperSaiyan2", "Ultimate", "BeastGohan" }),
 		c("u7_piccolo", "Piccolo", 850, 1),
 		c("u7_android_17", "Android 17", 900, 5),
@@ -396,6 +393,18 @@ Config.SKILL = {
 	BreakerPush = 50,
 	BreakerRadius = 10,
 	KnockbackGrowth = 1.5, -- kb = move.kb * (1 + 1.5 * missingHP%) * sqrt(ratio)
+	-- fight-research design gaps (FIGHT_RESEARCH.md section 4; rules in Shared/FightRules)
+	M1ChainWindow = 1.25, -- seconds between M1 presses for the server to keep counting the 4-hit chain
+	Finisher = { -- the 4th M1 of a chain: neutral blow-away, launch (jump held, grounded) or spike (airborne)
+		blow = { damageMult = 1.2, kb = 55, knockdown = 2.0, recovery = 0.3 },
+		launch = { damageMult = 1.1, kb = 10, up = 75, hitstun = 0.9, recovery = 0.2 },
+		spike = { damageMult = 1.25, kb = 6, down = 60, knockdown = 1.6, crackRadius = 9, crackPower = 60, recovery = 0.3 },
+	},
+	GetUpImmunity = 0.5, -- after a knockdown: no knockback / stun extension for this long (no loops)
+	KiBurstWindow = 4, -- a parry primes a Ki Burst: the next landed hit within this time is critical
+	KiBurstMult = 2,
+	VanishCounterIFrames = 0.4, -- parrying again while primed: vanish behind the attacker
+	TeamBurst = { window = 3, attackers = 2, radius = 18, push = 70, iframes = 0.6, cooldown = 30 },
 	Struggle = {
 		window = 0.2,
 		maxTime = 4,
@@ -442,7 +451,7 @@ Config.MOVES = {
 		unlock = "KiBlast",
 		cooldown = 1.5,
 		range = 150,
-		width = 1.5,
+		width = 3.5,
 		damage = 4,
 		ki = 5,
 		recovery = 0.15,
@@ -458,7 +467,7 @@ Config.MOVES = {
 		unlock = "SignatureBeam",
 		cooldown = 10,
 		range = 250,
-		width = 4,
+		width = 8.0,
 		damage = 28,
 		ki = 30,
 		recovery = 0.6,
