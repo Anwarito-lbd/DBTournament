@@ -73,9 +73,9 @@ local function readLayout()
 	local rootY, rootZ = 500 - 470 * SHENRON_SCALE, zcf.Position.Z - 300 * SHENRON_SCALE
 	SHENRON_ROOT = CFrame.lookAt(Vector3.new(0, rootY, rootZ), Vector3.new(0, rootY, 0))
 	BALLS_C, BALLS_R = Vector3.new(0, 506, -R * 0.55), math.max(26, R * 0.17)
-	local sdbPos = Vector3.new(0, 500 + 150 * K, -R * 0.45)
+	local sdbPos = Vector3.new(0, 500 + 230 * K, -R * 0.45)
 	SDB_CF = CFrame.lookAt(sdbPos, CENTER + Vector3.new(0, 10 * K, 90 * K)) * CFrame.Angles(-math.pi / 2, 0, 0)
-	SDB_D = 46 * K
+	SDB_D = 84 * K -- "planet-sized": each ball dwarfs the fighters
 	SDB_R = SDB_D * 1.75
 end
 
@@ -377,9 +377,12 @@ function D.new()
 			if m:GetAttribute("Super") then
 				-- planet-sized balls streak in from deep space and lock into the circle, then the circle turns slowly
 				local homes: { [Model]: CFrame } = {}
+				local slot: { [Model]: Vector3 } = {} -- each ball's place on the ring around Shenron (all seven evenly)
 				for _, c in m:GetChildren() do
 					if not c:IsA("Model") then continue end
 					local home = c:GetPivot(); homes[c] = home
+					local a = ((tonumber(string.match(c.Name, "%d+")) or 1) - 1) / 7 * math.pi * 2 + math.pi / 2
+					slot[c] = Vector3.new(math.cos(a), 0, math.sin(a))
 					local from = home + (home.Position - SDB_CF.Position).Unit * 900 * K + Vector3.new(0, 300 * K, -600 * K)
 					c:PivotTo(from)
 					task.spawn(function()
@@ -389,18 +392,22 @@ function D.new()
 						end
 					end)
 				end
+				-- when Shenron forms (attribute HaloCF / HaloRadius) the six-around-one formation opens into one great
+				-- ring of all seven around him
 				task.delay(3.8, function()
-					local spin, ringCF, scale = 0, SDB_CF, 1
+					local spin, ringCF, k = 0, SDB_CF, 0
 					while m.Parent and not m:GetAttribute("Scatter") do
 						spin += 0.004
 						local halo = m:GetAttribute("HaloCF")
 						if typeof(halo) == "CFrame" then
 							ringCF = ringCF:Lerp(halo, 0.025)
-							scale += (((m:GetAttribute("HaloScale") :: number?) or 1) - scale) * 0.025
+							k += (1 - k) * 0.025
 						end
+						local haloR = (m:GetAttribute("HaloRadius") :: number?) or SDB_R
 						for c, home in homes do
 							local off = SDB_CF:ToObjectSpace(home)
-							if c.Parent then c:PivotTo(ringCF * CFrame.Angles(0, spin, 0) * CFrame.new(off.Position * scale) * off.Rotation) end
+							local pos = off.Position:Lerp(slot[c] * haloR, k)
+							if c.Parent then c:PivotTo(ringCF * CFrame.Angles(0, spin, 0) * CFrame.new(pos) * off.Rotation) end
 						end
 						task.wait(1 / 30)
 					end
@@ -465,9 +472,10 @@ function D.new()
 				local balls = self.actors.super_dragon_balls
 				if balls and balls:GetAttribute("Super") and m.PrimaryPart then
 					local head = (m.PrimaryPart :: BasePart).Position
-					balls:SetAttribute("HaloCF", CFrame.lookAt(head + Vector3.new(0, 70 * K, -40 * K), CENTER + Vector3.new(0, 0, 60 * K))
-						* CFrame.Angles(-math.pi / 2, 0, 0))
-					balls:SetAttribute("HaloScale", 2)
+					-- a ring of all seven balls around Shenron's head and upper coils, facing the arena
+					local c = head + Vector3.new(0, -110 * K, -200 * K)
+					balls:SetAttribute("HaloCF", CFrame.lookAt(c, CENTER + Vector3.new(0, 0, 60 * K)) * CFrame.Angles(-math.pi / 2, 0, 0))
+					balls:SetAttribute("HaloRadius", 400 * K)
 				end
 				for _, fx in self.fx do
 					if fx.Name == "StorySky" then tween(fx, 3, { Brightness = -0.04, Contrast = 0.12 }) end

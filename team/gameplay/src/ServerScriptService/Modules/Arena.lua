@@ -289,4 +289,13 @@ function Arena.spawnNPCs(): number
 	return n
 end
 
+-- Apply the arena's art pass (sky, lighting, stage look) from server start, not only from the first resize, so the
+-- game doesn't open with the place's old lighting (a different clock and sky until the first round began).
+task.defer(function()
+	local wov = workspace:FindFirstChild("WorldOfVoid")
+	if wov and wov:FindFirstChild("Arena") then
+		Arena.refresh()
+	end
+end)
+
 return Arena
