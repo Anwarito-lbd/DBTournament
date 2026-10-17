@@ -1,3 +1,43 @@
+## 2026-10-17 (Claude Code - v11 Step A: arena, Super Shenron ending, ever-present cast) - VERIFIED IN STUDIO (solo)
+
+PLAN_V11 priority reset: the Universe battle first. Everything below is recreated in-engine (no ripped anime media).
+Reference: the Dragon Ball wiki pages for Zeno, the Grand Minister and the Super Dragon Balls.
+
+**Studio verification (local session, Play Solo through the Studio MCP bridge, real round flow):**
+- VERIFIED:
+  - Arena: the new stage look and the uploaded nebula skybox.
+  - Sky colour shift: lavender, then teal at 5:00, then crimson at 1:00.
+  - Damage: glowing ki cracks and tumbling debris.
+  - Ending: the Super Dragon Balls fly in and form six around one, then flare, link with a ring of gold light and fire a pillar of light. The screen flashes.
+  - Super Shenron forms tail-first with wings, his eyes ignite, and the balls become a halo behind his head. The wish choice opens.
+  - Intro: the Zenos sit on their thrones in Zeno's box with the attendants behind and the Grand Priest front-left. The box shots frame them.
+  - Persistence: the cast stays in the box during the match. The cutscenes reuse those figures and return them afterwards, with no duplicates.
+- FIXED during the pass:
+  - Zeno's box was built pitched about 37 degrees toward the ring, which tilted its floor, thrones and cast. It is now level.
+  - With StreamingEnabled the box was often not loaded when a cutscene started, so the director silently staged the cast on the ring. It now streams the box in, then falls back to the Arena's ZenoPos attribute.
+  - The box shots were aimed at the back of the old models. They are now in front of the cast, inside the glass.
+  - The Spawn_Zeno marker no longer glows on the box floor.
+- STILL UNVERIFIED:
+  - 2-client view of the cast and ending, and mobile framing.
+  - The wish beats after the choice: balls draining and scattering, Shenron dissolving.
+  - Low graphics quality. At the lowest level Roblox culls distant parts, which hides Shenron, Zeno's box and the stands. A fallback is needed before release.
+- KNOWN: the gold inside Zeno's box reads washed out under the daytime lighting the skybox needs.
+
+- **New**:
+  - `Shared/SuperShenron`: the colossal dragon built from primitives (about 2,000 parts), with a gold Highlight glow. It replaces the old 34-ball serpent (`UIKit.shenron` removed).
+  - `Shared/CastFigures`: rigged Zeno, Future Zeno, Grand Priest and attendant figures with Waist, Neck and Shoulder joints, built to the wiki designs. `anim()` provides Wave, Clap, Bow, RaiseHands, Look and Rest.
+  - `ZenoBoxCast.client`: keeps the cast in Zeno's box while the arena exists, with idle glances.
+  - `SkyCycle.client`: the match-long sky colour shift.
+  - `map/skybox/`: the six faces and their generator. They were uploaded on 2026-10-16 and the ids are in `ArtPass.SkyFaces`. The source is CC-BY, already in `Shared/Credits`.
+- **CutsceneDirector**:
+  - Cast cameras and poses.
+  - The Super Dragon Ball formation, summon light, flash and halo.
+  - Head-aimed Shenron shots.
+  - Flash and camera shake honour `ReduceMotion`.
+  - Removed: the unused library and placeholder cast paths (`guard`, `UIKit.figure`).
+- **map/Arena, ArtPass, ArenaDamage**: the Null Realm stage, the level Zeno box, stands raised for spectators, and glowing cracks with flying debris.
+- **Rights**: Dragon Ball characters, names and designs still need rights clearance before any public release.
+
 ## 2026-10-16 (Claude Code - v10 Legendary Episodes: `saiyan_arrival_01` vertical slice) - PARTLY VERIFIED IN STUDIO
 
 Implements the Reborn v4 direction: saga-faithful story episodes with in-engine cinematics and player-controlled fights.
