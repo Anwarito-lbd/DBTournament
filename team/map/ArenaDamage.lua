@@ -120,17 +120,30 @@ end
 local function addCrack(s: ChunkState)
 	if #cracks >= CFG.MAX_CRACKS then return end
 	local p = s.part
-	local c = Instance.new("Part")
-	c.Name = "Crack"
-	c.Anchored, c.CanCollide, c.CanTouch, c.CanQuery = true, false, false, false
-	c.Material = Enum.Material.Neon
-	c.Color = Color3.fromRGB(150, 90, 255)
-	c.Size = Vector3.new(0.4, 0.2, math.max(p.Size.Z, p.Size.X) * (0.5 + math.random() * 0.5))
-	c.CFrame = p.CFrame * CFrame.new(0, p.Size.Y / 2 + 0.05, 0) * CFrame.Angles(0, math.random() * math.pi, 0)
-	c.Parent = fxFolder
-	-- weld-free: crack follows chunk via attribute lookup on crater/detach
-	c:SetAttribute("ChunkId", p.Name)
-	table.insert(cracks, c)
+	-- v4 (PLAN_V11 Step A, "ki cracks"): a glowing orange main fissure plus a branch, so damage reads as the stage
+	-- splitting under ki rather than a painted line
+	local len = math.max(p.Size.Z, p.Size.X) * (0.5 + math.random() * 0.5)
+	local yaw = math.random() * math.pi
+	local origin = p.CFrame * CFrame.new(0, p.Size.Y / 2 + 0.05, 0) * CFrame.Angles(0, yaw, 0)
+	local pieces: { { any } } = {
+		{ Vector3.new(0.6, 0.2, len), origin },
+		{ Vector3.new(0.45, 0.2, len * 0.45), origin * CFrame.new(0, 0, len * 0.15) * CFrame.Angles(0, (math.random() - 0.5) * 1.6, 0) * CFrame.new(0, 0, len * 0.2) },
+	}
+	for _, spec in pieces do
+		if #cracks >= CFG.MAX_CRACKS then break end
+		local c = Instance.new("Part")
+		c.Name = "Crack"
+		c.Anchored, c.CanCollide, c.CanTouch, c.CanQuery = true, false, false, false
+		c.CastShadow = false
+		c.Material = Enum.Material.Neon
+		c.Color = Color3.fromRGB(255, 132, 40)
+		c.Size = spec[1]
+		c.CFrame = spec[2]
+		c.Parent = fxFolder
+		-- weld-free: crack follows chunk via attribute lookup on crater/detach
+		c:SetAttribute("ChunkId", p.Name)
+		table.insert(cracks, c)
+	end
 	s.cracked = true
 end
 
@@ -169,13 +182,15 @@ local function spawnDebris(at: Vector3, color: Color3)
 	for _ = 1, CFG.DEBRIS_PER_HIT do
 		local d = getDebris()
 		if not d then return end
-		local sz = 1 + math.random() * 2
-		d.Size = Vector3.new(sz, sz, sz)
-		d.Color = color
+		-- v4: irregular stone shards in the floor's own colour, flung up and spinning ("rocks flying")
+		local sz = 1 + math.random() * 2.5
+		d.Size = Vector3.new(sz * (0.6 + math.random() * 0.8), sz * (0.4 + math.random() * 0.5), sz * (0.6 + math.random() * 0.8))
+		d.Color = color:Lerp(Color3.fromRGB(70, 62, 88), math.random() * 0.3)
 		d.Anchored = false
-		d.CFrame = CFrame.new(at + Vector3.new(math.random(-3, 3), 2, math.random(-3, 3)))
+		d.CFrame = CFrame.new(at + Vector3.new(math.random(-3, 3), 2, math.random(-3, 3))) * CFrame.Angles(math.random() * 6, math.random() * 6, math.random() * 6)
 		d.Parent = fxFolder
-		d.AssemblyLinearVelocity = Vector3.new(math.random(-30, 30), 30 + math.random() * 40, math.random(-30, 30))
+		d.AssemblyLinearVelocity = Vector3.new(math.random(-34, 34), 34 + math.random() * 46, math.random(-34, 34))
+		d.AssemblyAngularVelocity = Vector3.new(math.random() - 0.5, math.random() - 0.5, math.random() - 0.5) * 20
 		local born = os.clock()
 		debrisActive[d] = born
 		task.delay(CFG.DEBRIS_LIFETIME, function()
@@ -201,8 +216,9 @@ local function detach(s: ChunkState, from: Vector3)
 	p.Anchored = false
 	local away = (p.Position - from) * Vector3.new(1, 0, 1)
 	if away.Magnitude > 0.01 then away = away.Unit end
-	p.AssemblyLinearVelocity = away * 25 + Vector3.new(0, -10, 0)
-	p.AssemblyAngularVelocity = Vector3.new(math.random() - 0.5, 0, math.random() - 0.5) * 4
+	-- v4: the slab kicks up and tumbles away before it drops into the void
+	p.AssemblyLinearVelocity = away * 30 + Vector3.new(0, 14, 0)
+	p.AssemblyAngularVelocity = Vector3.new(math.random() - 0.5, (math.random() - 0.5) * 0.5, math.random() - 0.5) * 7
 	local myRound = round
 	task.delay(CFG.FALL_TIME, function()
 		if round ~= myRound then return end
