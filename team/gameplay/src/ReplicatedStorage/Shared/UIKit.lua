@@ -158,38 +158,6 @@ function UIKit.figure(kind: string, cf: CFrame, scale: number?): Model
 	return m
 end
 
--- Super Shenron: segmented serpent coiling upward around `center`. Returns model.
-function UIKit.shenron(center: Vector3, height: number?): Model
-	local m = Instance.new("Model")
-	m.Name = "Story_SuperShenron"
-	local h = height or 160
-	local n = 34
-	local prev: Vector3? = nil
-	for i = 0, n do
-		local t = i / n
-		local a = t * math.pi * 4
-		local r = 60 * (1 - t * 0.6)
-		local pos = center + Vector3.new(math.cos(a) * r, t * h, math.sin(a) * r)
-		local seg = part(m, "Seg" .. i, Vector3.one * (9 - t * 3), CFrame.new(pos), Color3.fromRGB(235, 180, 40), Enum.PartType.Ball, Enum.Material.Neon)
-		seg.Transparency = 0.1
-		if prev then
-			part(m, "Spine" .. i, Vector3.new(3, 3, (pos - prev).Magnitude), CFrame.lookAt((pos + prev) / 2, pos), Color3.fromRGB(255, 220, 80), nil, Enum.Material.Neon)
-		end
-		prev = pos
-	end
-	local headPos = (prev :: Vector3) + Vector3.new(0, 12, 0)
-	local head = part(m, "Head", Vector3.new(16, 12, 22), CFrame.lookAt(headPos, Vector3.new(center.X, headPos.Y, center.Z) + Vector3.new(0, 0, 200)),
-		Color3.fromRGB(240, 190, 50), nil, Enum.Material.Neon)
-	for _, x in { -5, 5 } do
-		part(m, "Eye", Vector3.new(3, 2, 1), head.CFrame * CFrame.new(x, 2, -11), Color3.fromRGB(255, 20, 20), nil, Enum.Material.Neon)
-		part(m, "Horn", Vector3.new(1.5, 1.5, 14), head.CFrame * CFrame.new(x, 7, 6) * CFrame.Angles(math.rad(30), 0, 0), Color3.fromRGB(255, 220, 120))
-	end
-	local l = Instance.new("PointLight"); l.Color = Color3.fromRGB(255, 80, 60); l.Range = 60; l.Brightness = 3; l.Parent = head
-	m.PrimaryPart = head
-	m.Parent = workspace
-	return m
-end
-
 function UIKit.tweenCamera(cf: CFrame, t: number)
 	local cam = workspace.CurrentCamera
 	cam.CameraType = Enum.CameraType.Scriptable

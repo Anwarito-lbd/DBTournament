@@ -8,6 +8,7 @@ local Lighting = game:GetService("Lighting")
 local CollectionService = game:GetService("CollectionService")
 local UserInputService = game:GetService("UserInputService")
 local UIKit = require(script.Parent:WaitForChild("UIKit"))
+local SuperShenron = require(script.Parent:WaitForChild("SuperShenron"))
 local player = Players.LocalPlayer
 
 local D = {}
@@ -17,6 +18,12 @@ local FACE = Vector3.new(0, 0, 1)
 local SPOTS: { [string]: Vector3 } = {}
 local HEIGHT = { npc_grand_priest = 7.5, npc_zeno = 4, npc_zeno_future = 4, npc_zeno_guard_1 = 9, npc_zeno_guard_2 = 9 }
 local SHENRON_BASE, BALLS_C, BALLS_R, K = Vector3.new(0, 470, -190), Vector3.new(0, 506, -120), 26, 1
+-- built Super Shenron (no library model): tail root far behind Zeno's box, facing the ring; scales with the arena
+local SHENRON_ROOT, SHENRON_SCALE = CFrame.new(0, 80, -600), 1
+-- built Super Dragon Balls (anime reference: six in a ring around one, floating in space): planet-like orbs whose
+-- formation stands above and behind the arena facing the players. SDB_CF's local Y faces the viewers; balls sit in
+-- its XZ plane at radius SDB_R; diameter SDB_D
+local SDB_CF, SDB_R, SDB_D = CFrame.new(0, 610, -60), 70, 40
 local function readLayout()
 	local wov = workspace:FindFirstChild("WorldOfVoid")
 	local arena = wov and wov:FindFirstChild("Arena")
@@ -39,7 +46,15 @@ local function readLayout()
 	}
 	-- Shenron rises behind the far (-Z) edge of the ring; balls gather on the ring near that edge
 	SHENRON_BASE = Vector3.new(0, 470, -(R + 60))
+	-- the colossus coils up out of the void behind Zeno's box; its head hangs a few hundred studs above the box
+	SHENRON_SCALE = math.max(1, R / 200)
+	local rootY, rootZ = 500 - 470 * SHENRON_SCALE, zcf.Position.Z - 300 * SHENRON_SCALE
+	SHENRON_ROOT = CFrame.lookAt(Vector3.new(0, rootY, rootZ), Vector3.new(0, rootY, 0))
 	BALLS_C, BALLS_R = Vector3.new(0, 506, -R * 0.55), math.max(26, R * 0.17)
+	local sdbPos = Vector3.new(0, 500 + 150 * K, -R * 0.45)
+	SDB_CF = CFrame.lookAt(sdbPos, CENTER + Vector3.new(0, 10 * K, 90 * K)) * CFrame.Angles(-math.pi / 2, 0, 0)
+	SDB_D = 46 * K
+	SDB_R = SDB_D * 1.75
 end
 
 local function anchorAll(m: Instance)
@@ -110,6 +125,29 @@ function D.new()
 		anchorAll(m); m.PrimaryPart = h; m.Parent = workspace; return m
 	end
 
+	-- one built Super Dragon Ball: glassy orange orb, inner glow, i red stars facing the arena
+	local function superBall(i: number): Model
+		local b = Instance.new("Model"); b.Name = "Ball" .. i
+		-- ball 1 in the middle, 2..7 on the hexagon (top first)
+		local a = (i - 2) / 6 * math.pi * 2 - math.pi / 2
+		local off = if i == 1 then CFrame.new() else CFrame.new(math.cos(a) * SDB_R, 0, math.sin(a) * SDB_R)
+		local pos = (SDB_CF * off).Position
+		local face = CFrame.lookAt(pos, Vector3.new(0, pos.Y - 20 * K, CENTER.Z + 160 * K))
+		local orb = Instance.new("Part"); orb.Name = "Orb"; orb.Shape = Enum.PartType.Ball; orb.Size = Vector3.one * SDB_D
+		orb.Material = Enum.Material.Glass; orb.Color = Color3.fromRGB(255, 150, 30); orb.Transparency = 0.12; orb.CFrame = face; orb.Parent = b
+		local core = Instance.new("Part"); core.Name = "Core"; core.Shape = Enum.PartType.Ball; core.Size = Vector3.one * SDB_D * 0.82
+		core.Material = Enum.Material.Neon; core.Color = Color3.fromRGB(255, 176, 70); core.Transparency = 0.55; core.CFrame = face; core.Parent = b
+		-- the stars look the same from every angle (Dragon Ball lore), so they are a billboard just in front of the shell
+		local sg = Instance.new("BillboardGui"); sg.Name = "Stars"; sg.Adornee = orb; sg.Size = UDim2.fromScale(SDB_D * 0.5, SDB_D * 0.5)
+		sg.StudsOffset = Vector3.new(0, 0, SDB_D * 0.52); sg.LightInfluence = 0; sg.Brightness = 2.5; sg.MaxDistance = 1e5; sg.Parent = orb
+		local t = Instance.new("TextLabel"); t.BackgroundTransparency = 1; t.Size = UDim2.fromScale(1, 1); t.Font = Enum.Font.GothamBlack
+		t.TextScaled = true; t.TextWrapped = true; t.TextColor3 = Color3.fromRGB(235, 28, 28); t.TextStrokeColor3 = Color3.fromRGB(110, 0, 0)
+		t.TextStrokeTransparency = 0.3; t.Text = string.rep(utf8.char(0x2605), i); t.Parent = sg
+		local l = Instance.new("PointLight"); l.Color = Color3.fromRGB(255, 170, 70); l.Range = 60; l.Brightness = 2; l.Parent = orb
+		anchorAll(b)
+		return b
+	end
+
 	local function balls(): Model
 		local m = Instance.new("Model"); m.Name = "Story_super_dragon_balls"
 		for i = 1, 7 do
@@ -119,15 +157,14 @@ function D.new()
 			if b then
 				stand(b, pos, 9); b.Name = "Ball" .. i; b.Parent = m
 			else
-				local x = Instance.new("Part"); x.Name = "Ball" .. i; x.Shape = Enum.PartType.Ball; x.Size = Vector3.one * 9
-				x.Material = Enum.Material.Glass; x.Color = Color3.fromRGB(255, 170, 30); x.Transparency = 0.15
-				x.CFrame = CFrame.new(pos + Vector3.new(0, 4.5, 0)); x.Parent = m
-				local s = Instance.new("Part"); s.Name = "Star"; s.Shape = Enum.PartType.Ball; s.Size = Vector3.one * 2.2
-				s.Material = Enum.Material.Neon; s.Color = Color3.fromRGB(230, 30, 30); s.CFrame = x.CFrame; s.Parent = m
+				superBall(i).Parent = m
+				m:SetAttribute("Super", true)
 			end
 		end
-		for _, d in m:GetDescendants() do if d:IsA("BasePart") then
-			local l = Instance.new("PointLight"); l.Color = Color3.fromRGB(255, 190, 80); l.Range = 14; l.Brightness = 1.5; l.Parent = d; break end end
+		if not m:GetAttribute("Super") then
+			for _, d in m:GetDescendants() do if d:IsA("BasePart") then
+				local l = Instance.new("PointLight"); l.Color = Color3.fromRGB(255, 190, 80); l.Range = 14; l.Brightness = 1.5; l.Parent = d; break end end
+		end
 		anchorAll(m); m.Parent = workspace; return m
 	end
 
@@ -140,7 +177,7 @@ function D.new()
 			m.Parent = workspace
 			return m
 		end
-		return UIKit.shenron(SHENRON_BASE, 170)
+		return SuperShenron.build(SHENRON_ROOT, SHENRON_SCALE)
 	end
 
 	function self.actor(id: string): Model?
@@ -161,6 +198,7 @@ function D.new()
 	local function focus(id: string): Vector3
 		local m = self.actors[id] or self.actor(id)
 		if not m then return CENTER end
+		if m:GetAttribute("FocusOnHead") and m.PrimaryPart then return m.PrimaryPart.Position end
 		local cf, size = m:GetBoundingBox()
 		return cf.Position + Vector3.new(0, size.Y * 0.3, 0)
 	end
@@ -191,16 +229,28 @@ function D.new()
 			return CFrame.lookAt(CENTER + Vector3.new(160, 90, 160), CENTER), 1 end,
 		OverheadCountdown = function() return CFrame.lookAt(CENTER + Vector3.new(0, 220, 30) * K, CENTER), 2 end,
 		WinnersWide = function() return CFrame.lookAt(CENTER + Vector3.new(0, 40, 110) * K, CENTER + Vector3.new(0, 10, -40)), 1.5 end,
-		SkyWide = function() return CFrame.lookAt(BALLS_C + Vector3.new(0, 30, 150), BALLS_C + Vector3.new(0, 60, -60)), 2 end,
-		StageLowAngle = function() return CFrame.lookAt(BALLS_C + Vector3.new(0, 2, 60), BALLS_C + Vector3.new(0, 18, -20)), 1.5 end,
+		SkyWide = function()
+			local m = self.actors.super_dragon_balls
+			if m and m:GetAttribute("Super") then return CFrame.lookAt(CENTER + Vector3.new(0, 30, 200) * K, SDB_CF.Position + Vector3.new(0, 40 * K, 0)), 2 end
+			return CFrame.lookAt(BALLS_C + Vector3.new(0, 30, 150), BALLS_C + Vector3.new(0, 60, -60)), 2 end,
+		StageLowAngle = function()
+			local m = self.actors.super_dragon_balls
+			if m and m:GetAttribute("Super") then return CFrame.lookAt(CENTER + Vector3.new(0, 3, 60 * K), SDB_CF.Position), 1.5 end
+			return CFrame.lookAt(BALLS_C + Vector3.new(0, 2, 60), BALLS_C + Vector3.new(0, 18, -20)), 1.5 end,
 		ShenronCraneReveal = function()
 			local m = self.actor("npc_shenron"); local cf, size = (m :: Model):GetBoundingBox()
+			if (m :: Model):GetAttribute("FocusOnHead") and (m :: Model).PrimaryPart then
+				-- colossus: rise from the ring's edge and look up past Zeno's box at the head and coils
+				local head = ((m :: Model).PrimaryPart :: BasePart).Position
+				return CFrame.lookAt(Vector3.new(head.X * 0.3, CENTER.Y + 40 * K, 120 * K), head - Vector3.new(0, 160 * K, 0)), 5
+			end
 			local h = math.max(size.Y, size.X * 0.6); local fov = math.rad(workspace.CurrentCamera.FieldOfView)
 			local dist = (h * 0.62) / math.tan(fov / 2) + size.Z * 0.5
 			return CFrame.lookAt(cf.Position + Vector3.new(0, -h * 0.12, dist), cf.Position + Vector3.new(0, h * 0.04, 0)), 5 end,
 		ShenronExtremeLow = function()
 			local m = self.actor("npc_shenron"); local cf, size = (m :: Model):GetBoundingBox()
-			local top = cf.Position + Vector3.new(0, size.Y * 0.35, 0)
+			local top = if m:GetAttribute("FocusOnHead") and m.PrimaryPart then m.PrimaryPart.Position else cf.Position + Vector3.new(0, size.Y * 0.35, 0)
+			if m:GetAttribute("FocusOnHead") then return CFrame.lookAt(CENTER + Vector3.new(0, 4, 90 * K), top + Vector3.new(0, 40 * K, 0)), 1.5 end
 			return CFrame.lookAt(BALLS_C + Vector3.new(0, 1, 40), top), 1.5 end,
 		LeaderOTS = function()
 			local r = myRoot(); local s = focus("npc_shenron")
@@ -253,6 +303,16 @@ function D.new()
 		end)
 	end
 	local function addFx(i: Instance) table.insert(self.fx, i); return i end
+	-- one warm full-screen flash (softer with the ReduceMotion setting)
+	local function flash(peak: number)
+		local sg = addFx(Instance.new("ScreenGui")) :: ScreenGui
+		sg.Name = "StoryFlash"; sg.IgnoreGuiInset = true; sg.DisplayOrder = 30; sg.Parent = player:WaitForChild("PlayerGui")
+		local f = Instance.new("Frame"); f.Size = UDim2.fromScale(1, 1); f.BorderSizePixel = 0
+		f.BackgroundColor3 = Color3.fromRGB(255, 236, 190); f.BackgroundTransparency = 1; f.Parent = sg
+		local top = if player:GetAttribute("ReduceMotion") == true then math.max(peak, 0.75) else peak
+		TweenService:Create(f, TweenInfo.new(0.15), { BackgroundTransparency = top }):Play()
+		task.delay(0.2, function() if f.Parent then TweenService:Create(f, TweenInfo.new(0.8), { BackgroundTransparency = 1 }):Play() end end)
+	end
 
 	self.actions = {
 		Bow = function(beat) local m = self.actors.npc_grand_priest; if m then local b = m:GetPivot()
@@ -285,6 +345,39 @@ function D.new()
 			cc.Name = "StorySky"; cc.Parent = Lighting
 			tween(cc, 4, { Brightness = -0.25, Contrast = 0.2, TintColor = Color3.fromRGB(190, 170, 210) })
 			local m = self.actor("super_dragon_balls"); if not m then return end
+			if m:GetAttribute("Super") then
+				-- planet-sized balls streak in from deep space and lock into the circle, then the circle turns slowly
+				local homes: { [Model]: CFrame } = {}
+				for _, c in m:GetChildren() do
+					if not c:IsA("Model") then continue end
+					local home = c:GetPivot(); homes[c] = home
+					local from = home + (home.Position - SDB_CF.Position).Unit * 900 * K + Vector3.new(0, 300 * K, -600 * K)
+					c:PivotTo(from)
+					task.spawn(function()
+						for i = 1, 36 do
+							if not c.Parent then return end
+							c:PivotTo(from:Lerp(home, 1 - (1 - i / 36) ^ 3)); task.wait(0.1)
+						end
+					end)
+				end
+				task.delay(3.8, function()
+					local spin, ringCF, scale = 0, SDB_CF, 1
+					while m.Parent and not m:GetAttribute("Scatter") do
+						spin += 0.004
+						local halo = m:GetAttribute("HaloCF")
+						if typeof(halo) == "CFrame" then
+							ringCF = ringCF:Lerp(halo, 0.025)
+							scale += (((m:GetAttribute("HaloScale") :: number?) or 1) - scale) * 0.025
+						end
+						for c, home in homes do
+							local off = SDB_CF:ToObjectSpace(home)
+							if c.Parent then c:PivotTo(ringCF * CFrame.Angles(0, spin, 0) * CFrame.new(off.Position * scale) * off.Rotation) end
+						end
+						task.wait(1 / 30)
+					end
+				end)
+				return
+			end
 			for _, c in m:GetChildren() do
 				local b = c :: any; local base = if c:IsA("Model") then c:GetPivot() else (c :: BasePart).CFrame
 				local start = base + Vector3.new(math.random(-80, 80), 120, math.random(-60, 0))
@@ -300,14 +393,89 @@ function D.new()
 		end,
 		BallsFlare = function()
 			local m = self.actors.super_dragon_balls; if not m then return end
+			if m:GetAttribute("Super") then
+				for _, d in m:GetDescendants() do
+					if d:IsA("PointLight") then tween(d, 1.2, { Brightness = 10 }) end
+					if d:IsA("BasePart") and d.Name == "Core" then tween(d, 1.2, { Transparency = 0.3, Color = Color3.fromRGB(255, 196, 90) }) end
+				end
+				-- a ring of gold light joins the seven balls, then a pillar of light climbs into the sky
+				local fx = addFx(Instance.new("Model")) :: Model; fx.Name = "SummonLight"; fx.Parent = workspace
+				local n = 60
+				for i = 1, n do
+					local a0, a1 = (i - 1) / n * math.pi * 2, i / n * math.pi * 2
+					local p0 = (SDB_CF * CFrame.new(math.cos(a0) * SDB_R, 0, math.sin(a0) * SDB_R)).Position
+					local p1 = (SDB_CF * CFrame.new(math.cos(a1) * SDB_R, 0, math.sin(a1) * SDB_R)).Position
+					local seg = Instance.new("Part"); seg.Name = "Ring"; seg.Material = Enum.Material.Neon; seg.Color = Color3.fromRGB(255, 214, 110)
+					seg.Size = Vector3.new(3 * K, 3 * K, (p1 - p0).Magnitude + 1); seg.CFrame = CFrame.lookAt((p0 + p1) / 2, p1); seg.Transparency = 1
+					seg.Parent = fx
+					task.delay(0.3 + i / n * 0.9, function() if seg.Parent then tween(seg, 0.3, { Transparency = 0.1 }) end end)
+				end
+				local beam = Instance.new("Part"); beam.Name = "Pillar"; beam.Shape = Enum.PartType.Cylinder; beam.Material = Enum.Material.Neon
+				beam.Color = Color3.fromRGB(255, 230, 160); beam.Transparency = 1; beam.Size = Vector3.new(10, SDB_R * 0.5, SDB_R * 0.5)
+				local up = CFrame.new(SDB_CF.Position) * CFrame.Angles(0, 0, math.pi / 2) -- cylinder axis (X) -> world up
+				beam.CFrame = up; beam.Parent = fx
+				anchorAll(fx)
+				task.delay(1.4, function()
+					if not beam.Parent then return end
+					flash(0.2)
+					-- grows from the formation straight up into the sky
+					tween(beam, 0.6, { Transparency = 0.15, Size = Vector3.new(4000, SDB_R * 0.5, SDB_R * 0.5), CFrame = up + Vector3.new(0, 2000, 0) })
+					task.delay(2.6, function() if beam.Parent then tween(beam, 1.5, { Transparency = 1 }) end end)
+				end)
+				return
+			end
 			for _, l in m:GetDescendants() do if l:IsA("PointLight") then tween(l, 1, { Brightness = 8, Range = 40 }, nil, true, 2) end end
 			for _, p in m:GetDescendants() do if p:IsA("BasePart") and p.Name == "Star" then tween(p, 0.6, { Size = Vector3.one * 4 }, nil, true, 4) end end
 		end,
 		RiseGold_RedEyes = function()
 			local m = self.actor("npc_shenron"); if not m then return end
+			local cf, size = m:GetBoundingBox()
+			if m:GetAttribute("FocusOnHead") then
+				-- built Super Shenron: too big to rise through the stage; it forms out of the light tail-first, then its
+				-- own eyes ignite
+				local balls = self.actors.super_dragon_balls
+				if balls and balls:GetAttribute("Super") and m.PrimaryPart then
+					local head = (m.PrimaryPart :: BasePart).Position
+					balls:SetAttribute("HaloCF", CFrame.lookAt(head + Vector3.new(0, 70 * K, -40 * K), CENTER + Vector3.new(0, 0, 60 * K))
+						* CFrame.Angles(-math.pi / 2, 0, 0))
+					balls:SetAttribute("HaloScale", 2)
+				end
+				for _, fx in self.fx do
+					if fx.Name == "StorySky" then tween(fx, 3, { Brightness = -0.04, Contrast = 0.12 }) end
+					if fx.Name == "SummonLight" then
+						for _, p in fx:GetDescendants() do if p:IsA("BasePart") then tween(p, 2, { Transparency = 1 }) end end
+					end
+				end
+				local aura = m:FindFirstChild("DivineGlow") :: Highlight?
+				if aura then
+					aura.Enabled = false
+					task.delay(2.6, function() if aura.Parent then aura.Enabled = true end end)
+				end
+				local parts = {}
+				for _, p in m:GetDescendants() do if p:IsA("BasePart") then table.insert(parts, p) end end
+				for i, p in parts do
+					local final = p.Transparency
+					p.Transparency = 1
+					task.delay(0.2 + 2.2 * i / #parts, function() if p.Parent then tween(p, 0.8, { Transparency = final }) end end)
+				end
+				for _, e in m:GetDescendants() do
+					if e:IsA("BasePart") and e.Name == "Eye" then
+						local red = e.Color
+						e.Color = Color3.fromRGB(40, 6, 6)
+						local l = e:FindFirstChildOfClass("PointLight")
+						local glow = if l then l.Brightness else 0
+						if l then l.Brightness = 0 end
+						task.delay(3.5, function()
+							if e == m:FindFirstChild("Eye", true) then flash(0.45) end
+							tween(e, 1, { Color = red })
+							if l then tween(l, 1, { Brightness = glow }) end
+						end)
+					end
+				end
+				return
+			end
 			local b = m:GetPivot(); m:PivotTo(b + Vector3.new(0, -160, 0))
 			task.spawn(function() for i = 1, 40 do if not m.Parent then return end; m:PivotTo(b + Vector3.new(0, -160 * (1 - i / 40) ^ 2, 0)); task.wait(0.1) end end)
-			local cf, size = m:GetBoundingBox()
 			for _, x in { -1, 1 } do
 				local e = Instance.new("Part"); e.Name = "RedEye"; e.Shape = Enum.PartType.Ball; e.Anchored = true; e.CanCollide = false; e.CanQuery = false
 				e.Material = Enum.Material.Neon; e.Color = Color3.fromRGB(255, 20, 20); e.Size = Vector3.one * 0.1
@@ -316,6 +484,7 @@ function D.new()
 			end
 		end,
 		CameraShake = function()
+			if player:GetAttribute("ReduceMotion") == true then return end
 			task.spawn(function()
 				local cam = workspace.CurrentCamera
 				for i = 1, 40 do
@@ -325,8 +494,21 @@ function D.new()
 		end,
 		ShenronDissolve_BallsScatter = function()
 			local s = self.actors.npc_shenron
-			if s then for _, p in s:GetDescendants() do if p:IsA("BasePart") then tween(p, 3, { Transparency = 1 }) end end end
+			if s then for _, p in s:GetDescendants() do
+				if p:IsA("BasePart") then tween(p, 3, { Transparency = 1 }) end
+				if p:IsA("Highlight") then tween(p, 2, { FillTransparency = 1, OutlineTransparency = 1 }) end
+			end end
 			local m = self.actors.super_dragon_balls
+			if m then m:SetAttribute("Scatter", true) end
+			if m and m:GetAttribute("Super") then
+				for _, d in m:GetDescendants() do
+					if d:IsA("BasePart") and d.Name == "Orb" then tween(d, 1.2, { Color = Color3.fromRGB(128, 116, 104) }) end
+					if d:IsA("BasePart") and d.Name == "Core" then tween(d, 1.2, { Transparency = 1 }) end
+					if d:IsA("PointLight") then tween(d, 1.2, { Brightness = 0 }) end
+					if d:IsA("TextLabel") then tween(d, 1.2, { TextColor3 = Color3.fromRGB(70, 40, 40) }) end
+				end
+				task.wait(1.2)
+			end
 			if m then for _, c in m:GetChildren() do
 				local target = (if c:IsA("Model") then c:GetPivot() else (c :: BasePart).CFrame) + Vector3.new(math.random(-300, 300), 250, math.random(-300, 300))
 				if c:IsA("BasePart") then tween(c, 2.5, { CFrame = target, Transparency = 1 }, Enum.EasingStyle.Quad)
