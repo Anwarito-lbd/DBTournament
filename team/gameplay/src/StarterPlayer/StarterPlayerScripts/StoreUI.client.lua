@@ -14,10 +14,11 @@ local Res = Remotes:WaitForChild("StoreResult") :: RemoteEvent
 local player = Players.LocalPlayer
 
 local gui = UIKit.gui("StoreUI", 20)
-local openBtn =
-	-- LAYOUT FIX (2026-10-14): was at 1,-76, which put it inside the HUD's bottom-left stats panel
-	-- (300x168 at 12,-180 spans the whole bottom-left corner), so "Store" was drawn over the Zeni/XP rows.
-	UIKit.button(gui, "Store", UDim2.new(0, 90, 0, 30), UDim2.new(0, 10, 1, -392), Color3.fromRGB(30, 90, 200))
+-- v11: the Store entry lives in the menu rail (ScreenManager); one panel open at a time (UIStyle.registerPanel)
+local S = require(Shared:WaitForChild("UIStyle"))
+local SM = require(Shared:WaitForChild("ScreenManager"))
+local railItem = SM.railItem({ label = "Store", key = "", order = 7 })
+local openBtn = railItem.button
 local panel = UIKit.frame(gui, UDim2.new(0, 860, 0, 520), UDim2.new(0.5, -430, 0.5, -260), UIKit.DARK, 0.04)
 panel.Visible = false
 local title = UIKit.label(
@@ -206,6 +207,7 @@ for i, cat in Catalog.CATS do
 		render()
 	end)
 end
+local notify: (boolean) -> () = function() end
 local function setOpen(v: boolean)
 	-- FTUE (2026-10-14): the Capsule Corp store was opening over the onboarding screen. Every open path (the Store
 	-- nav button, the StorePrompt proximity prompt, and the dev BindableFunction) funnels through here.
@@ -213,11 +215,14 @@ local function setOpen(v: boolean)
 		return
 	end
 	panel.Visible = v
+	notify(v)
+	railItem.setOpen(v)
 	if v then
 		render()
 	end
 end
-openBtn.MouseButton1Click:Connect(function()
+notify = S.registerPanel(setOpen :: any)
+openBtn.Activated:Connect(function()
 	setOpen(not panel.Visible)
 end)
 close.MouseButton1Click:Connect(function()

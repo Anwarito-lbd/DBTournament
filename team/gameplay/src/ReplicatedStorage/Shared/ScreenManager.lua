@@ -108,6 +108,99 @@ player:GetAttributeChangedSignal("InCinematic"):Connect(function()
 	SM.hideHud("cinematic", player:GetAttribute("InCinematic") == true)
 end)
 
+-- round cutscenes (Grand Priest intro, Shenron ending, character select) own the screen for round players
+local function roundCutscene(): boolean
+	local s = workspace:GetAttribute("RoundState")
+	return player:GetAttribute("InRaid") ~= true and (s == "Intro" or s == "Ending" or s == "CharacterSelect")
+end
+local function syncRound() SM.hideHud("round", roundCutscene()) end
+workspace:GetAttributeChangedSignal("RoundState"):Connect(syncRound)
+player:GetAttributeChangedSignal("InRaid"):Connect(syncRound)
+syncRound()
+
+-- lobby-only UI (menu rail, quest tracker): hidden in the tutorial, in raids/episodes and while fighting in a round
+function SM.lobbyHidden(): boolean
+	if player:GetAttribute("InTutorial") == true or player:GetAttribute("InRaid") == true then return true end
+	return workspace:GetAttribute("RoundState") == "InRound" and player:GetAttribute("Alive") == true
+end
+local lobbyWatch: { GuiObject } = {}
+local function syncLobby()
+	local hide = SM.lobbyHidden()
+	for _, g in lobbyWatch do g.Visible = not hide and g:GetAttribute("Wanted") ~= false end
+end
+function SM.lobbyOnly(g: GuiObject)
+	table.insert(lobbyWatch, g)
+	g.Visible = not SM.lobbyHidden() and g:GetAttribute("Wanted") ~= false
+end
+function SM.setWanted(g: GuiObject, on: boolean) -- player toggles (J for quests) combine with the lobby rule
+	g:SetAttribute("Wanted", on)
+	syncLobby()
+end
+for _, a in { "InTutorial", "InRaid", "Alive" } do player:GetAttributeChangedSignal(a):Connect(syncLobby) end
+workspace:GetAttributeChangedSignal("RoundState"):Connect(syncLobby)
+
+-- ===== menu rail: one column of navigation, each item opens one panel =====
+local railFrame: Frame? = nil
+local railItems: { [string]: any } = {}
+local function rail(): Frame
+	if railFrame and railFrame.Parent then return railFrame end
+	local f = Instance.new("Frame")
+	f.Name = "MenuRail"; f.BackgroundTransparency = 1; f.AutomaticSize = Enum.AutomaticSize.XY; f.Size = UDim2.new()
+	f.Parent = SM.zone("rail")
+	S.stack(f, "Y", 6)
+	SM.lobbyOnly(f)
+	railFrame = f
+	return f
+end
+-- opts: label, key ("" for none), order, quiet (dimmer, for Credits), onClick
+function SM.railItem(opts: any): any
+	local old = railItems[opts.label]
+	if old then old.button:Destroy() end
+	local b = Instance.new("TextButton")
+	b.Name = "Rail_" .. opts.label
+	b.Text = ""
+	b.AutoButtonColor = false
+	b.BackgroundColor3 = S.C.panel
+	b.BackgroundTransparency = if opts.quiet then 0.45 else S.PANEL_ALPHA
+	b.BorderSizePixel = 0
+	b.Size = UDim2.new(0, math.floor(190 * S.textScale()), 0, 0)
+	b.AutomaticSize = Enum.AutomaticSize.Y
+	b.LayoutOrder = opts.order or 10
+	b.Parent = rail()
+	S.corner(b, 8)
+	local st = S.stroke(b, S.C.stroke, 1)
+	st.Transparency = 0.2
+	local p = Instance.new("UIPadding")
+	p.PaddingLeft, p.PaddingRight = UDim.new(0, 14), UDim.new(0, 10)
+	p.PaddingTop, p.PaddingBottom = UDim.new(0, 8), UDim.new(0, 8)
+	p.Parent = b
+	local l = S.text(b, "body", opts.label, { font = S.F.bold, color = if opts.quiet then S.C.muted else S.C.text })
+	l.Name = "Label"
+	local k = S.keyBadge(b, opts.key or "")
+	k.AnchorPoint = Vector2.new(1, 0.5); k.Position = UDim2.new(1, 0, 0.5, 0)
+	local edge = Instance.new("Frame") -- lit when its panel is open
+	edge.Name = "Open"; edge.BackgroundColor3 = S.C.orange; edge.BorderSizePixel = 0; edge.Size = UDim2.new(0, 4, 1, -10)
+	edge.Position = UDim2.new(0, -12, 0, 5); edge.Visible = false; edge.Parent = b
+	S.corner(edge, 2)
+	b.MouseEnter:Connect(function() st.Color = S.C.gold end)
+	b.MouseLeave:Connect(function() st.Color = S.C.stroke end)
+	if opts.onClick then b.Activated:Connect(opts.onClick) end
+	local item = {
+		button = b, key = opts.key or "",
+		setOpen = function(on: boolean) edge.Visible = on; l.TextColor3 = if on then S.C.gold elseif opts.quiet then S.C.muted else S.C.text end,
+		setKey = function(key: string) k.Text = key; k.Visible = key ~= "" and S.device() == "Keyboard" end,
+	}
+	railItems[opts.label] = item
+	k.Visible = item.key ~= "" and S.device() == "Keyboard"
+	return item
+end
+S.deviceChanged:Connect(function(d)
+	for _, it in railItems do
+		local k = it.button:FindFirstChild("Key") :: TextLabel?
+		if k then k.Visible = it.key ~= "" and d == "Keyboard" end
+	end
+end)
+
 -- true while a modal or a cinematic owns the screen: celebrations and pop-ups wait for it
 function SM.busy(): boolean
 	local m: ScreenGui? = layers.Modal

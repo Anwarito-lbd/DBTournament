@@ -192,7 +192,25 @@ function S.clear(f: Instance)
 	end
 end
 
--- open/close with a pop tween; returns setter. Adds toggle key + an on-screen touch button (slot = vertical index).
+-- v11: only one panel is open at a time; any panel's setter can be registered here (Store, Credits use it too)
+local openPanels: { [any]: (boolean?) -> () } = {}
+function S.registerPanel(setter: (boolean?) -> ()): (boolean) -> ()
+	return function(isOpen: boolean)
+		if isOpen then
+			for other, close in openPanels do
+				if other ~= setter then
+					openPanels[other] = nil
+					task.spawn(close, false)
+				end
+			end
+			openPanels[setter] = setter
+		else
+			openPanels[setter] = nil
+		end
+	end
+end
+
+-- open/close with a pop tween; returns setter. Adds toggle key + a menu-rail entry (slot = order in the rail).
 function S.toggle(
 	gui: ScreenGui,
 	panel: Frame,
@@ -223,12 +241,15 @@ function S.toggle(
 		end
 		return lp:GetAttribute("InTutorial") == true
 	end
+	local railItem: any = nil
+	local notify: (boolean) -> () = function() end
 	local function set(v: boolean?)
 		open = if v == nil then not open else v
 		if open and focusHidden() then
 			open = false
-			return
 		end
+		notify(open)
+		if railItem then railItem.setOpen(open) end
 		if open then
 			panel.Visible = true
 			scale.Scale = 0.85
@@ -245,24 +266,15 @@ function S.toggle(
 			set()
 		end
 	end)
-	local b = S.button(
-		gui,
-		short .. (if S.MOBILE then "" else (" [" .. key.Name .. "]")),
-		UDim2.fromScale(0.09, 0.05),
-		UDim2.new(0.005, 0, 0.30 + slot * 0.06, 0),
-		S.PANEL,
-		function()
-			set()
-		end
-	)
-	local c = Instance.new("UISizeConstraint")
-	c.MinSize = Vector2.new(70, 36)
-	c.MaxSize = Vector2.new(150, 44)
-	c.Parent = b
+	notify = S.registerPanel(set)
+	-- v11: the button lives in ScreenManager's menu rail (lazy require: ScreenManager requires this module)
+	local smModule: any = (script.Parent :: any):WaitForChild("ScreenManager") -- dynamic: no static require cycle
+	railItem = (require(smModule) :: any).railItem({
+		label = short, key = key.Name, order = slot, onClick = function() set() end,
+	})
 	if lp then
 		local function applyFocus()
 			local hide = focusHidden()
-			b.Visible = not hide
 			if hide and open then
 				set(false)
 			end
@@ -323,7 +335,7 @@ function S.device(): string return device end
 
 -- key hint per action and device ("" = no badge: the on-screen button is the hint)
 local KEYS = {
-	Keyboard = { block = "F", dash = "Q", vanish = "E", breaker = "R", mash = "V", heavy = "G", ki = "1", beam = "2", menu = "M", quests = "J", controls = "H", close = "Esc" },
+	Keyboard = { block = "F", dash = "Q", vanish = "E", breaker = "R", mash = "V", heavy = "G", ki = "1", beam = "2", transform = "X", stances = "B", menu = "M", quests = "J", controls = "H", close = "Esc" },
 	Gamepad = { close = "B" },
 	Touch = {},
 }

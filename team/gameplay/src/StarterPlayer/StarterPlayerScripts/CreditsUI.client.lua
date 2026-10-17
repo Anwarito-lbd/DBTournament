@@ -6,9 +6,11 @@ local UIKit = require(Shared:WaitForChild("UIKit"))
 local Credits = require(Shared:WaitForChild("Credits"))
 
 local gui = UIKit.gui("Credits", 30)
--- LAYOUT FIX (2026-10-14): was at 1,-40, i.e. drawn on top of the HUD's bottom-left stats panel.
-local btn = UIKit.button(gui, "Credits", UDim2.new(0, 90, 0, 30), UDim2.new(0, 10, 1, -356), Color3.fromRGB(40, 40, 70))
-btn.TextSize = 14
+-- v11: the Credits entry is the last, quiet item of the menu rail; one panel open at a time
+local S = require(Shared:WaitForChild("UIStyle"))
+local SM = require(Shared:WaitForChild("ScreenManager"))
+local railItem = SM.railItem({ label = "Credits", key = "", order = 8, quiet = true })
+local btn = railItem.button
 local panel = UIKit.frame(gui, UDim2.new(0, 720, 0.8, 0), UDim2.new(0.5, -360, 0.1, 0), UIKit.DARK, 0.05)
 panel.Name = "CreditsPanel"
 panel.Visible = false
@@ -55,11 +57,19 @@ for i, m in Credits.models do
 	t.LayoutOrder = i
 	t.Parent = list
 end
+local notify: (boolean) -> () = function() end
+local function setOpen(v: boolean?)
+	local on = if v == nil then not panel.Visible else v
+	panel.Visible = on
+	railItem.setOpen(on)
+	notify(on)
+end
+notify = S.registerPanel(setOpen)
 btn.Activated:Connect(function()
-	panel.Visible = not panel.Visible
+	setOpen()
 end)
 close.Activated:Connect(function()
-	panel.Visible = false
+	setOpen(false)
 end)
 
 -- STATE VISIBILITY (2026-10-14): this element had no state awareness, so it was drawn over the character-select

@@ -18,6 +18,9 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local ClientAPI = require(Shared:WaitForChild("ClientAPI"))
 local Config = require(Shared:WaitForChild("Config"))
 local UIKit = require(Shared:WaitForChild("UIKit"))
+local S = require(Shared:WaitForChild("UIStyle")) -- v11 kit: tokens, fonts, sizes
+local SM = require(Shared:WaitForChild("ScreenManager"))
+local function dp(n: number): number return math.floor(n * S.textScale() + 0.5) end
 
 local PosesFolder = ReplicatedStorage:WaitForChild("Poses", 10)
 local FightAnimator = require(Shared:WaitForChild("FightAnimator")) -- the one owner of combat poses
@@ -63,10 +66,10 @@ end
 -- ========================================================
 local awakenFrame = Instance.new("Frame")
 awakenFrame.Name = "AwakeningFrame"
-awakenFrame.Size = UDim2.new(0, 480, 0, 36)
-awakenFrame.Position = UDim2.new(0.5, -240, 1, -135)
-awakenFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 20)
-awakenFrame.BackgroundTransparency = 0.25
+awakenFrame.Size = UDim2.new(0, dp(560), 0, dp(20))
+awakenFrame.Position = UDim2.new(0.5, -dp(280), 1, -dp(142))
+awakenFrame.BackgroundColor3 = S.C.ink
+awakenFrame.BackgroundTransparency = 0.2
 awakenFrame.BorderSizePixel = 0
 awakenFrame.Parent = gui
 
@@ -75,8 +78,8 @@ awakenCorner.CornerRadius = UDim.new(0, 8)
 awakenCorner.Parent = awakenFrame
 
 local awakenStroke = Instance.new("UIStroke")
-awakenStroke.Color = Color3.fromRGB(70, 70, 85)
-awakenStroke.Thickness = 1.5
+awakenStroke.Color = S.C.stroke
+awakenStroke.Thickness = 1
 awakenStroke.Parent = awakenFrame
 
 local awakenFill = Instance.new("Frame")
@@ -92,9 +95,9 @@ fillCorner.Parent = awakenFill
 
 local fillGrad = Instance.new("UIGradient")
 fillGrad.Color = ColorSequence.new({
-	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 180, 40)),
-	ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 60, 60)),
-	ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 30, 255)),
+	ColorSequenceKeypoint.new(0, S.C.orange),
+	ColorSequenceKeypoint.new(0.6, S.C.gold),
+	ColorSequenceKeypoint.new(1, S.C.goldLight),
 })
 fillGrad.Parent = awakenFill
 
@@ -102,9 +105,10 @@ local awakenLabel = Instance.new("TextLabel")
 awakenLabel.Name = "Label"
 awakenLabel.Size = UDim2.new(1, 0, 1, 0)
 awakenLabel.BackgroundTransparency = 1
-awakenLabel.Font = Enum.Font.GothamBlack
-awakenLabel.TextSize = 14
-awakenLabel.TextColor3 = Color3.fromRGB(240, 240, 255)
+awakenLabel.Font = S.F.bold
+awakenLabel.TextSize = S.px("caption") - 2
+awakenLabel.TextColor3 = S.C.text
+awakenLabel.TextStrokeTransparency = 0.4
 awakenLabel.Text = "AWAKENING  0%"
 awakenLabel.Parent = awakenFrame
 
@@ -124,15 +128,17 @@ end)
 -- ========================================================
 local hotbar = Instance.new("Frame")
 hotbar.Name = "SkillHotbar"
-hotbar.Size = UDim2.new(0, 480, 0, 72)
-hotbar.Position = UDim2.new(0.5, -240, 1, -90)
+hotbar.Size = UDim2.new(0, dp(680), 0, dp(84))
+hotbar.Position = UDim2.new(0.5, -dp(340), 1, -dp(110))
 hotbar.BackgroundTransparency = 1
 hotbar.Parent = gui
 
 local hl = Instance.new("UIListLayout")
 hl.FillDirection = Enum.FillDirection.Horizontal
 hl.HorizontalAlignment = Enum.HorizontalAlignment.Center
-hl.Padding = UDim.new(0, 12)
+hl.Padding = UDim.new(0, dp(8))
+hl.SortOrder = Enum.SortOrder.LayoutOrder
+hl.VerticalAlignment = Enum.VerticalAlignment.Bottom
 hl.Parent = hotbar
 
 type SkillDef = { id: string, name: string, key: string, cd: number, ki: number, icon: string }
@@ -146,12 +152,13 @@ local SKILLS: { SkillDef } = {
 local skillCards: { [string]: { frame: Frame, cdFill: Frame, cdText: TextLabel, lastUsed: number, cdDuration: number } } =
 	{}
 
-for _, sk in ipairs(SKILLS) do
+for slotIndex, sk in ipairs(SKILLS) do
 	local card = Instance.new("Frame")
 	card.Name = "Skill_" .. sk.id
-	card.Size = UDim2.new(0, 110, 0, 70)
-	card.BackgroundColor3 = Color3.fromRGB(20, 20, 26)
-	card.BackgroundTransparency = 0.15
+	card.LayoutOrder = slotIndex
+	card.Size = UDim2.new(0, dp(104), 0, dp(84))
+	card.BackgroundColor3 = S.C.panel
+	card.BackgroundTransparency = S.PANEL_ALPHA
 	card.BorderSizePixel = 0
 	card.Parent = hotbar
 
@@ -160,43 +167,43 @@ for _, sk in ipairs(SKILLS) do
 	cc.Parent = card
 
 	local cStroke = Instance.new("UIStroke")
-	cStroke.Color = Color3.fromRGB(60, 60, 80)
-	cStroke.Thickness = 1.5
+	cStroke.Color = if sk.id == "Kamehameha" then S.C.orange else S.C.stroke -- the signature move reads as the special slot
+	cStroke.Thickness = if sk.id == "Kamehameha" then 2 else 1
 	cStroke.Parent = card
 
 	local iconLabel = Instance.new("TextLabel")
-	iconLabel.Size = UDim2.new(1, 0, 0, 28)
-	iconLabel.Position = UDim2.new(0, 0, 0, 6)
+	iconLabel.Size = UDim2.new(1, 0, 0, dp(32))
+	iconLabel.Position = UDim2.new(0, 0, 0, dp(10))
 	iconLabel.BackgroundTransparency = 1
 	iconLabel.Text = sk.icon
-	iconLabel.TextSize = 22
+	iconLabel.TextSize = dp(26)
 	iconLabel.Parent = card
 
 	local titleLabel = Instance.new("TextLabel")
-	titleLabel.Size = UDim2.new(1, -8, 0, 16)
-	titleLabel.Position = UDim2.new(0, 4, 0, 34)
+	titleLabel.Size = UDim2.new(1, -8, 0, dp(16))
+	titleLabel.Position = UDim2.new(0, 4, 0, dp(46))
 	titleLabel.BackgroundTransparency = 1
-	titleLabel.Font = Enum.Font.GothamBold
-	titleLabel.TextSize = 11
-	titleLabel.TextColor3 = Color3.fromRGB(230, 235, 245)
+	titleLabel.Font = S.F.bold
+	titleLabel.TextSize = dp(12)
+	titleLabel.TextColor3 = S.C.text
 	titleLabel.Text = sk.name
 	titleLabel.Parent = card
 
 	local costLabel = Instance.new("TextLabel")
-	costLabel.Size = UDim2.new(1, -8, 0, 14)
-	costLabel.Position = UDim2.new(0, 4, 0, 50)
+	costLabel.Size = UDim2.new(1, -8, 0, dp(14))
+	costLabel.Position = UDim2.new(0, 4, 0, dp(63))
 	costLabel.BackgroundTransparency = 1
-	costLabel.Font = Enum.Font.Gotham
-	costLabel.TextSize = 10
-	costLabel.TextColor3 = Color3.fromRGB(70, 170, 255)
-	costLabel.Text = "KI: " .. sk.ki
+	costLabel.Font = S.F.data
+	costLabel.TextSize = dp(11)
+	costLabel.TextColor3 = S.C.ki
+	costLabel.Text = sk.ki .. " Ki"
 	costLabel.Parent = card
 
 	-- Key badge
 	local keyBadge = Instance.new("Frame")
-	keyBadge.Size = UDim2.new(0, 22, 0, 18)
-	keyBadge.Position = UDim2.new(1, -24, 0, 4)
-	keyBadge.BackgroundColor3 = Color3.fromRGB(40, 40, 55)
+	keyBadge.Size = UDim2.new(0, dp(20), 0, dp(18))
+	keyBadge.Position = UDim2.new(1, -dp(24), 0, dp(4))
+	keyBadge.BackgroundColor3 = S.C.gold
 	keyBadge.BorderSizePixel = 0
 	keyBadge.Parent = card
 
@@ -207,9 +214,9 @@ for _, sk in ipairs(SKILLS) do
 	local keyText = Instance.new("TextLabel")
 	keyText.Size = UDim2.new(1, 0, 1, 0)
 	keyText.BackgroundTransparency = 1
-	keyText.Font = Enum.Font.GothamBlack
-	keyText.TextSize = 11
-	keyText.TextColor3 = Color3.fromRGB(255, 215, 70)
+	keyText.Font = S.F.data
+	keyText.TextSize = dp(12)
+	keyText.TextColor3 = S.C.ink
 	keyText.Text = sk.key
 	keyText.Parent = keyBadge
 
@@ -219,8 +226,8 @@ for _, sk in ipairs(SKILLS) do
 	cdOverlay.Size = UDim2.new(1, 0, 0, 0)
 	cdOverlay.Position = UDim2.new(0, 0, 1, 0)
 	cdOverlay.AnchorPoint = Vector2.new(0, 1)
-	cdOverlay.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-	cdOverlay.BackgroundTransparency = 0.45
+	cdOverlay.BackgroundColor3 = S.C.ink
+	cdOverlay.BackgroundTransparency = 0.3
 	cdOverlay.BorderSizePixel = 0
 	cdOverlay.Parent = card
 
@@ -232,8 +239,8 @@ for _, sk in ipairs(SKILLS) do
 	cdNumber.Name = "CDNumber"
 	cdNumber.Size = UDim2.new(1, 0, 1, 0)
 	cdNumber.BackgroundTransparency = 1
-	cdNumber.Font = Enum.Font.GothamBlack
-	cdNumber.TextSize = 20
+	cdNumber.Font = S.F.data
+	cdNumber.TextSize = dp(22)
 	cdNumber.TextColor3 = Color3.fromRGB(255, 255, 255)
 	cdNumber.Text = ""
 	cdNumber.Parent = card
@@ -275,8 +282,8 @@ end
 -- ========================================================
 local statusFrame = Instance.new("Frame")
 statusFrame.Name = "MobilityBadges"
-statusFrame.Size = UDim2.new(0, 160, 0, 50)
-statusFrame.Position = UDim2.new(0.5, -420, 1, -80)
+statusFrame.Size = UDim2.new(0, 0, 0, 0) -- v11: kept for structure; the badges now sit in the hotbar as its end slots
+statusFrame.Position = UDim2.new(0.5, 0, 1, 0)
 statusFrame.BackgroundTransparency = 1
 statusFrame.Parent = gui
 
@@ -285,55 +292,59 @@ sl.FillDirection = Enum.FillDirection.Horizontal
 sl.Padding = UDim.new(0, 10)
 sl.Parent = statusFrame
 
-local function makeBadge(name: string, key: string, label: string): (Frame, TextLabel, UIStroke)
+local function makeBadge(name: string, key: string, label: string, order: number): (Frame, TextLabel, UIStroke)
 	local b = Instance.new("Frame")
 	b.Name = name
-	b.Size = UDim2.new(0, 70, 0, 48)
-	b.BackgroundColor3 = Color3.fromRGB(20, 20, 26)
-	b.BackgroundTransparency = 0.2
+	b.LayoutOrder = order
+	b.Size = UDim2.new(0, dp(66), 0, dp(66))
+	b.BackgroundColor3 = S.C.panel
+	b.BackgroundTransparency = S.PANEL_ALPHA
 	b.BorderSizePixel = 0
-	b.Parent = statusFrame
+	b.Parent = hotbar
 
 	local bc = Instance.new("UICorner")
 	bc.CornerRadius = UDim.new(0, 6)
 	bc.Parent = b
 	local bs = Instance.new("UIStroke")
-	bs.Color = Color3.fromRGB(60, 60, 80)
-	bs.Thickness = 1.2
+	bs.Color = S.C.stroke
+	bs.Thickness = 1
 	bs.Parent = b
 
 	local kt = Instance.new("TextLabel")
-	kt.Size = UDim2.new(1, 0, 0, 22)
-	kt.BackgroundTransparency = 1
-	kt.Font = Enum.Font.GothamBlack
-	kt.TextSize = 13
-	kt.TextColor3 = Color3.fromRGB(255, 215, 70)
-	kt.Text = "[" .. key .. "]"
+	kt.Size = UDim2.new(0, dp(22), 0, dp(20))
+	kt.Position = UDim2.new(0.5, -dp(11), 0, dp(10))
+	kt.BackgroundTransparency = 0
+	kt.BackgroundColor3 = S.C.gold
+	local ktc = Instance.new("UICorner"); ktc.CornerRadius = UDim.new(0, 4); ktc.Parent = kt
+	kt.Font = S.F.data
+	kt.TextSize = dp(13)
+	kt.TextColor3 = S.C.ink
+	kt.Text = key
 	kt.Parent = b
 
 	local lt = Instance.new("TextLabel")
-	lt.Size = UDim2.new(1, 0, 0, 20)
-	lt.Position = UDim2.new(0, 0, 0, 22)
+	lt.Size = UDim2.new(1, 0, 0, dp(18))
+	lt.Position = UDim2.new(0, 0, 0, dp(38))
 	lt.BackgroundTransparency = 1
-	lt.Font = Enum.Font.GothamBold
-	lt.TextSize = 10
-	lt.TextColor3 = Color3.fromRGB(210, 220, 235)
+	lt.Font = S.F.bold
+	lt.TextSize = dp(11)
+	lt.TextColor3 = S.C.muted
 	lt.Text = label
 	lt.Parent = b
 
 	return b, lt, bs
 end
 
-local dashBadge, dashLabel, dashStroke = makeBadge("DashBadge", "Q", "DASH")
-local guardBadge, guardLabel, guardStroke = makeBadge("GuardBadge", "F", "GUARD")
+local dashBadge, dashLabel, dashStroke = makeBadge("DashBadge", "Q", "DASH", 0)
+local guardBadge, guardLabel, guardStroke = makeBadge("GuardBadge", "F", "GUARD", 99)
 
 -- ========================================================
 -- 4. DYNAMIC COMIC-BOOK COMBO COUNTER (TSB Style)
 -- ========================================================
 local comboContainer = Instance.new("Frame")
 comboContainer.Name = "ComboContainer"
-comboContainer.Size = UDim2.new(0, 240, 0, 90)
-comboContainer.Position = UDim2.new(0.5, 260, 1, -190)
+comboContainer.Size = UDim2.new(0, dp(260), 0, dp(96))
+comboContainer.Position = UDim2.new(0.5, dp(360), 1, -dp(200))
 comboContainer.BackgroundTransparency = 1
 comboContainer.Parent = gui
 
@@ -341,11 +352,12 @@ local comboNumber = Instance.new("TextLabel")
 comboNumber.Name = "ComboNumber"
 comboNumber.Size = UDim2.new(1, 0, 0, 50)
 comboNumber.BackgroundTransparency = 1
-comboNumber.Font = Enum.Font.GothamBlack
-comboNumber.TextSize = 42
-comboNumber.TextColor3 = Color3.fromRGB(255, 215, 40)
-comboNumber.TextStrokeColor3 = Color3.fromRGB(40, 10, 0)
+comboNumber.Font = S.F.impact
+comboNumber.TextSize = dp(48)
+comboNumber.TextColor3 = S.C.gold
+comboNumber.TextStrokeColor3 = S.C.ink
 comboNumber.TextStrokeTransparency = 0
+comboNumber.Rotation = -4
 comboNumber.Text = ""
 comboNumber.Parent = comboContainer
 
@@ -354,9 +366,9 @@ comboSub.Name = "ComboSub"
 comboSub.Size = UDim2.new(1, 0, 0, 24)
 comboSub.Position = UDim2.new(0, 0, 0, 52)
 comboSub.BackgroundTransparency = 1
-comboSub.Font = Enum.Font.GothamBold
-comboSub.TextSize = 13
-comboSub.TextColor3 = Color3.fromRGB(255, 255, 255)
+comboSub.Font = S.F.bold
+comboSub.TextSize = dp(14)
+comboSub.TextColor3 = S.C.text
 comboSub.TextStrokeTransparency = 0.5
 comboSub.Text = ""
 comboSub.Parent = comboContainer
@@ -373,29 +385,29 @@ local function recordHit()
 	end
 	lastHitTime = now
 
-	comboNumber.Text = "COMBO " .. currentCombo
-	comboSub.Text = string.format("+%d%% COMBO POWER", math.min(50, currentCombo * 5))
+	comboNumber.Text = currentCombo .. " HITS!"
+	comboSub.Text = string.format("+%d%% combo power", math.min(50, currentCombo * 5))
 
 	-- Bounce Tween
-	comboNumber.TextSize = 52
+	comboNumber.TextSize = dp(60)
 	local tw = TweenService:Create(
 		comboNumber,
 		TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-		{ TextSize = 42 }
+		{ TextSize = dp(48) }
 	)
 	tw:Play()
 
 	if currentCombo >= 10 then
-		comboNumber.TextColor3 = Color3.fromRGB(255, 45, 45)
+		comboNumber.TextColor3 = S.C.danger
 	elseif currentCombo >= 5 then
-		comboNumber.TextColor3 = Color3.fromRGB(255, 140, 30)
+		comboNumber.TextColor3 = S.C.orange
 	else
-		comboNumber.TextColor3 = Color3.fromRGB(255, 215, 40)
+		comboNumber.TextColor3 = S.C.gold
 	end
 end
 
 ClientAPI.onCombatEvent:Connect(function(kind, data)
-	if kind == "Hit" and type(data) == "table" and data.att == player then
+	if kind == "Hit" and type(data) == "table" and data[2] == player.UserId then -- positional payload: data[2] = attacker id
 		recordHit()
 	end
 end)
@@ -405,30 +417,31 @@ end)
 -- ========================================================
 local stanceToggleBtn = Instance.new("TextButton")
 stanceToggleBtn.Name = "StanceToggleBtn"
-stanceToggleBtn.Size = UDim2.new(0, 170, 0, 36)
-stanceToggleBtn.Position = UDim2.new(1, -185, 1, -80)
-stanceToggleBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 28)
+stanceToggleBtn.Size = UDim2.new(0, dp(150), 0, dp(34))
+stanceToggleBtn.LayoutOrder = 11
+stanceToggleBtn.BackgroundColor3 = S.C.panel
+stanceToggleBtn.BackgroundTransparency = S.PANEL_ALPHA
 stanceToggleBtn.BorderSizePixel = 0
-stanceToggleBtn.Font = Enum.Font.GothamBold
-stanceToggleBtn.TextSize = 12
-stanceToggleBtn.TextColor3 = Color3.fromRGB(255, 215, 70)
-stanceToggleBtn.Text = "🎭 STANCES  [B]"
-stanceToggleBtn.Parent = gui
+stanceToggleBtn.Font = S.F.bold
+stanceToggleBtn.TextSize = S.px("label")
+stanceToggleBtn.TextColor3 = S.C.text
+stanceToggleBtn.Text = if S.keyFor("stances") ~= "" then "Stances  ·  B" else "Stances"
+stanceToggleBtn.Parent = SM.zone("help") -- v11: sits with the Controls chip; hidden with the HUD layer
 
 local stbCorner = Instance.new("UICorner")
 stbCorner.CornerRadius = UDim.new(0, 8)
 stbCorner.Parent = stanceToggleBtn
 local stbStroke = Instance.new("UIStroke")
-stbStroke.Color = Color3.fromRGB(80, 70, 100)
-stbStroke.Thickness = 1.2
+stbStroke.Color = S.C.stroke
+stbStroke.Thickness = 1
 stbStroke.Parent = stanceToggleBtn
 
 local stanceModal = Instance.new("Frame")
 stanceModal.Name = "StanceModal"
 stanceModal.Size = UDim2.new(0, 240, 0, 250)
 stanceModal.Position = UDim2.new(1, -255, 1, -345)
-stanceModal.BackgroundColor3 = Color3.fromRGB(18, 18, 24)
-stanceModal.BackgroundTransparency = 0.1
+stanceModal.BackgroundColor3 = S.C.panel
+stanceModal.BackgroundTransparency = 0.06
 stanceModal.BorderSizePixel = 0
 stanceModal.Visible = false
 stanceModal.Parent = gui
@@ -437,17 +450,17 @@ local smCorner = Instance.new("UICorner")
 smCorner.CornerRadius = UDim.new(0, 10)
 smCorner.Parent = stanceModal
 local smStroke = Instance.new("UIStroke")
-smStroke.Color = Color3.fromRGB(255, 215, 70)
-smStroke.Thickness = 1.5
+smStroke.Color = S.C.stroke
+smStroke.Thickness = 1
 smStroke.Parent = stanceModal
 
 local smTitle = Instance.new("TextLabel")
 smTitle.Size = UDim2.new(1, 0, 0, 32)
 smTitle.BackgroundTransparency = 1
-smTitle.Font = Enum.Font.GothamBlack
-smTitle.TextSize = 13
-smTitle.TextColor3 = Color3.fromRGB(255, 220, 80)
-smTitle.Text = "MARTIAL ARTS STANCES"
+smTitle.Font = S.F.display
+smTitle.TextSize = S.px("lead")
+smTitle.TextColor3 = S.C.text
+smTitle.Text = "Stances"
 smTitle.Parent = stanceModal
 
 local smList = Instance.new("UIListLayout")
@@ -455,22 +468,22 @@ smList.Padding = UDim.new(0, 6)
 smList.Parent = stanceModal
 
 local STANCE_OPTIONS = {
-	{ name = "🥋 Turtle Combat Stance", clip = GokuPoses and GokuPoses.Idle },
-	{ name = "👑 Saiyan Prince Stance", clip = VegetaPoses and VegetaPoses.Idle_PridefulCross },
-	{ name = "🕊️ Ultra Instinct Sway", clip = GokuPoses and GokuPoses.Idle_UI },
-	{ name = "⚡ Power Surge Stance", clip = GokuPoses and GokuPoses.Transform_SSJ },
-	{ name = "💥 Kamehameha Charge", clip = GokuPoses and GokuPoses.Kamehameha_Charge },
+	{ name = "Turtle combat stance", clip = GokuPoses and GokuPoses.Idle },
+	{ name = "Saiyan prince stance", clip = VegetaPoses and VegetaPoses.Idle_PridefulCross },
+	{ name = "Ultra Instinct sway", clip = GokuPoses and GokuPoses.Idle_UI },
+	{ name = "Power surge", clip = GokuPoses and GokuPoses.Transform_SSJ },
+	{ name = "Kamehameha charge", clip = GokuPoses and GokuPoses.Kamehameha_Charge },
 }
 
 for _, opt in ipairs(STANCE_OPTIONS) do
 	local b = Instance.new("TextButton")
 	b.Size = UDim2.new(1, -16, 0, 34)
 	b.Position = UDim2.new(0, 8, 0, 0)
-	b.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+	b.BackgroundColor3 = S.C.ink
 	b.BorderSizePixel = 0
-	b.Font = Enum.Font.GothamBold
-	b.TextSize = 12
-	b.TextColor3 = Color3.fromRGB(240, 240, 255)
+	b.Font = S.F.bold
+	b.TextSize = S.px("label")
+	b.TextColor3 = S.C.text
 	b.Text = opt.name
 	b.Parent = stanceModal
 
@@ -522,9 +535,9 @@ UserInputService.InputBegan:Connect(function(input, processed)
 		skillCards.Vanish.lastUsed = os.clock()
 	elseif k == Enum.KeyCode.Q then
 		stopCurrentPose()
-		dashStroke.Color = Color3.fromRGB(0, 205, 255)
+		dashStroke.Color = S.C.ki
 		task.delay(0.3, function()
-			dashStroke.Color = Color3.fromRGB(60, 60, 80)
+			dashStroke.Color = S.C.stroke
 		end)
 	end
 end)
@@ -570,11 +583,11 @@ RunService.RenderStepped:Connect(function()
 	-- Guard status
 	local isBlocking = player:GetAttribute("Blocking") == true
 	if isBlocking then
-		guardStroke.Color = Color3.fromRGB(0, 235, 255)
+		guardStroke.Color = S.C.ki
 		guardStroke.Thickness = 2
 	else
-		guardStroke.Color = Color3.fromRGB(60, 60, 80)
-		guardStroke.Thickness = 1.2
+		guardStroke.Color = S.C.stroke
+		guardStroke.Thickness = 1
 	end
 
 	-- Combo timeout
@@ -592,14 +605,15 @@ RunService.RenderStepped:Connect(function()
 	awakenFill.Size = UDim2.new(awakenFrac, 0, 1, 0)
 
 	if awakenFrac >= 0.85 then
-		awakenStroke.Color = Color3.fromRGB(255, 215, 50)
-		awakenStroke.Thickness = 2.5
-		awakenLabel.TextColor3 = Color3.fromRGB(255, 240, 100)
-		awakenLabel.Text = "⚡ AWAKENING READY  [G] / [X] ⚡"
+		awakenStroke.Color = S.C.gold
+		awakenStroke.Thickness = 2
+		awakenLabel.TextColor3 = S.C.ink
+		local k = S.keyFor("transform")
+		awakenLabel.Text = if k ~= "" then ("Awakening ready  ·  press %s"):format(k) else "Awakening ready  ·  tap the bar" -- X transforms (G is Heavy)
 	else
-		awakenStroke.Color = Color3.fromRGB(70, 70, 85)
-		awakenStroke.Thickness = 1.5
-		awakenLabel.TextColor3 = Color3.fromRGB(220, 220, 235)
-		awakenLabel.Text = string.format("%s  •  AWAKENING %d%%", form:upper(), math.floor(awakenFrac * 100))
+		awakenStroke.Color = S.C.stroke
+		awakenStroke.Thickness = 1
+		awakenLabel.TextColor3 = S.C.text
+		awakenLabel.Text = string.format("%s  ·  Awakening %d%%", form, math.floor(awakenFrac * 100))
 	end
 end)
