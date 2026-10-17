@@ -632,6 +632,20 @@ Config.MOVES = {
 		recovery = 0.8,
 	},
 }
+-- Character kits (Shared/Kits) may add moves of existing kinds; they never replace a core move. Guarded so the
+-- plain-Luau tests (no `script`) still load Config.
+do
+	local ok, Kits = pcall(function()
+		local k = script.Parent:FindFirstChild("Kits")
+		return k and require(k)
+	end)
+	if ok and Kits and Kits.moves and Config.MOVES then
+		for id, mv in Kits.moves() do
+			if Config.MOVES[id] == nil then Config.MOVES[id] = mv end
+		end
+	end
+end
+
 -- Moro absorption: drains up to 20 ki from the target; Moro gains +5% PL per hit, capped +25%, 15 s.
 -- Copy: repeats the target's last used move (not Absorb/Copy) at 70% damage/knockback/arena power, ignoring unlocks.
 Config.MORO = { drainKi = 20, plPerHit = 0.05, plCap = 0.25, plDuration = 15, copyPower = 0.7, copyMemory = 10 }

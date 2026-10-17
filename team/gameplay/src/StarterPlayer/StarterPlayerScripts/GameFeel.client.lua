@@ -14,6 +14,7 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ClientAPI = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ClientAPI"))
+local Kits = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Kits")) -- per-character power-up look
 local VFX = ReplicatedStorage:WaitForChild("VFX", 10)
 local C = VFX and require(VFX:WaitForChild("VFXCommon"))
 local player = Players.LocalPlayer
@@ -233,23 +234,29 @@ RunService.Heartbeat:Connect(function(dt)
 	if charging and ch then
 		local k = ((player:GetAttribute("KiCharge") :: number?) or 0) / stageCap
 		local ns = if k >= 0.66 then 3 elseif k >= 0.33 then 2 else 1
+		local cid = player:GetAttribute("Character")
+		local pu = (if type(cid) == "string" then Kits.powerUp(cid) else nil) or {}
 		if not aura then
-			aura = C.AuraEmitter(ch, formId(), { Scale = 1 })
+			aura = C.AuraEmitter(ch, pu.aura or formId(), { Scale = 1 })
 			stage = 0
 		end
 		if ns ~= stage then
 			stage = ns
 			aura:SetIntensity(0.5 + 0.5 * ns)
+			local col = pu.color or Color3.fromRGB(255, 230, 140)
+			local crack = pu.crack or 1
 			local r = rootOf(ch)
 			if r then
 				local res = workspace:Raycast(r.Position, Vector3.new(0, -10, 0), C.rayParams({ ch, fx() }))
 				local g = if res then res.Position else r.Position - Vector3.new(0, 3, 0)
-				C.GroundCrack(fx(), g, 3 + 3 * ns, 4 + 3 * ns, Color3.fromRGB(255, 230, 140), 2.5)
-				C.DebrisBurst(fx(), g, 3 + 4 * ns, 18 + 8 * ns, nil, 2)
-				C.Shockwave(fx(), CFrame.new(g), 2, 8 + 6 * ns, Color3.fromRGB(255, 230, 150), 0.4)
+				C.GroundCrack(fx(), g, (3 + 3 * ns) * crack, (4 + 3 * ns) * crack, col, 2.5)
+				C.DebrisBurst(fx(), g, math.floor((3 + 4 * ns) * crack), 18 + 8 * ns, nil, 2)
+				C.Shockwave(fx(), CFrame.new(g), 2, (8 + 6 * ns) * crack, col, 0.4)
 			end
 			C.CameraShake(0.2 + 0.15 * ns, 0.4)
-			C.FOVPunch(2 + 2 * ns)
+			C.FOVPunch(2 + 2 * ns + (pu.zoom or 0) * ns / 3)
+			-- the character screams from their kit's stage (AnimeStyle shows the face)
+			ch:SetAttribute("Scream", if ns >= (pu.screamStage or 3) then true else nil)
 			if ns == 3 then
 				C.SpeedLines(0.5, Color3.fromRGB(255, 240, 180), 40)
 			end
@@ -270,6 +277,7 @@ RunService.Heartbeat:Connect(function(dt)
 		end
 		if stage > 0 and ch then
 			ch:SetAttribute("Charging", nil)
+			ch:SetAttribute("Scream", nil)
 		end
 		stage = 0
 		shown = target

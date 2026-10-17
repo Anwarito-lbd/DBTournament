@@ -166,6 +166,7 @@ local function updateFaces()
 			local expr = "Neutral"
 			local o = exprOverride[d]
 			if o and o.untilT > os.clock() then expr = o.expr
+			elseif d:GetAttribute("Scream") then expr = "Scream" -- power-up scream stage from the character's kit
 			elseif (p and (p:GetAttribute("Charging") or p:GetAttribute("Blocking"))) or d:GetAttribute("Charging") then expr = "Angry" end
 			local cur = head:FindFirstChild("AnimeFace") :: SurfaceGui?
 			if not cur or cur:GetAttribute("Expr") ~= expr or cur:GetAttribute("Id") ~= (id or "") then

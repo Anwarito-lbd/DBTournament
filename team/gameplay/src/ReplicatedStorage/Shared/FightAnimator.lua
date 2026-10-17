@@ -14,6 +14,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local AnimMarkerRouter = require(script.Parent:WaitForChild("AnimMarkerRouter"))
+local Kits = require(script.Parent:WaitForChild("Kits")) -- per-character identity (clip sets)
 
 local PosesFolder = ReplicatedStorage:WaitForChild("Poses", 10)
 local function poses(name: string): any
@@ -46,6 +47,14 @@ function FightAnimator.championId(ch: Model): string?
 end
 
 local function setFor(id: string?): any
+	-- the character's kit decides first (a set shipped in its race folder, or a named shared set)
+	local km = Kits.clipModule(id)
+	if km then
+		local ok, res = pcall(require, km)
+		if ok then return res end
+	end
+	local kn = Kits.clipName(id)
+	if kn and poses(kn) then return poses(kn) end
 	if id then
 		if string.find(id, "vegeta") then return VegetaPoses end
 		if string.find(id, "frieza") or string.find(id, "frost") then return FriezaPoses end

@@ -7,6 +7,7 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Lighting = game:GetService("Lighting")
 local ClientAPI = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ClientAPI"))
+local Kits = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Kits")) -- per-character form styles
 local VFX = ReplicatedStorage:WaitForChild("VFX", 10)
 local C = VFX and require(VFX:WaitForChild("VFXCommon"))
 if not C then warn("[TransformCinematic] VFXCommon missing"); return end
@@ -46,7 +47,9 @@ local fx = workspace:FindFirstChild("ClientFX") or Instance.new("Folder"); fx.Na
 
 local busy = false
 local function cinematic(ch: Model, preset: string)
-	local st = STYLE[preset]; if not st then return end
+	local pl = Players:GetPlayerFromCharacter(ch)
+	local cid = (pl and pl:GetAttribute("Character")) or ch:GetAttribute("Character") or ch:GetAttribute("ChampionModel")
+	local st = (if type(cid) == "string" then Kits.formStyle(cid, preset) else nil) or STYLE[preset]; if not st then return end
 	local r = rootOf(ch); if not r then return end
 	local mine = ch == player.Character
 	if not mine and (camera.CFrame.Position - r.Position).Magnitude > 120 then return end

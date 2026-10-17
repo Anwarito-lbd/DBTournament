@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ClientAPI = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ClientAPI"))
+local Kits = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Kits")) -- per-character identity
 local VFX = ReplicatedStorage:WaitForChild("VFX", 10)
 
 -- Initialize WP22 VFX LOD Manager if available
@@ -100,7 +101,7 @@ local function mod(name: string)
 		return nil
 	end
 	if cache[name] == nil then
-		local m = VFX:FindFirstChild(name)
+		local m = VFX:FindFirstChild(name) or Kits.findModule(name) -- kits may ship their own effects
 		local ok, res = pcall(function()
 			return m and require(m)
 		end)
@@ -136,6 +137,16 @@ ClientAPI.onPlayVFX:Connect(function(kind: string, character: Model, arg: any)
 	local override = id and SIGNATURE_OVERRIDE[id]
 	if override and override[kind] then
 		modName = override[kind]
+	end
+	modName = (if type(id) == "string" then Kits.signature(id, kind) else nil) or modName
+	-- the character's own camera on their move (local player only): push-in and shake
+	local cam = if type(id) == "string" and character == Players.LocalPlayer.Character then Kits.camera(id, kind) else nil
+	if cam then
+		local c = mod("VFXCommon")
+		if c then
+			if cam.zoom then run("camera zoom", c.FOVPunch, cam.zoom) end
+			if cam.shake then run("camera shake", c.CameraShake, cam.shake, 0.4) end
+		end
 	end
 	local m = modName and mod(modName)
 	if not m then
