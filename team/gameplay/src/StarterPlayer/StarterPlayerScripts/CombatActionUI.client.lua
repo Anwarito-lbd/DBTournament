@@ -20,7 +20,7 @@ local Config = require(Shared:WaitForChild("Config"))
 local UIKit = require(Shared:WaitForChild("UIKit"))
 
 local PosesFolder = ReplicatedStorage:WaitForChild("Poses", 10)
-local PosePlayer = PosesFolder and require(PosesFolder:WaitForChild("PosePlayer"))
+local FightAnimator = require(Shared:WaitForChild("FightAnimator")) -- the one owner of combat poses
 local GokuPoses = PosesFolder and require(PosesFolder:WaitForChild("Goku"))
 local VegetaPoses = PosesFolder and require(PosesFolder:WaitForChild("Vegeta"))
 local SharedPoses = PosesFolder and require(PosesFolder:WaitForChild("Shared"))
@@ -51,8 +51,9 @@ end
 
 local currentPoseHandle: any = nil
 local function stopCurrentPose()
-	if currentPoseHandle and currentPoseHandle.Stop then
-		currentPoseHandle:Stop(0.2)
+	if currentPoseHandle then
+		-- only release the body if the stance is still what is playing (a move may have taken over)
+		if FightAnimator.current(player.Character) == "Stance" then FightAnimator.stop(player.Character, 0.2) end
 		currentPoseHandle = nil
 	end
 end
@@ -480,8 +481,8 @@ for _, opt in ipairs(STANCE_OPTIONS) do
 	b.MouseButton1Click:Connect(function()
 		stopCurrentPose()
 		stanceModal.Visible = false
-		if opt.clip and PosePlayer and player.Character then
-			currentPoseHandle = PosePlayer.Play(player.Character, opt.clip, { Loop = true, Speed = 1 })
+		if opt.clip and player.Character then
+			currentPoseHandle = FightAnimator.play(player.Character, opt.clip, { source = "local", family = "Stance", name = "Stance", loop = true, markers = false })
 		end
 	end)
 end

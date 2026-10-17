@@ -43,13 +43,15 @@ local function toCF(p)
 end
 PosePlayer.ToCFrame = toCF
 
--- Find Motor6Ds by joint name on an R15 rig.
+-- Find the joints by name on an R15 rig: classic Motor6Ds, or the AnimationConstraints that current Roblox avatars
+-- use instead (both expose .Transform). Only looking for Motor6D found no joints on those avatars, so every clip
+-- silently animated nothing.
 function PosePlayer.GetMotors(character)
 	local motors = {}
 	for joint, partName in pairs(Shared.JOINT_PART) do
 		local part = character:FindFirstChild(partName)
 		local m = part and part:FindFirstChild(joint)
-		if m and m:IsA("Motor6D") then motors[joint] = m end
+		if m and (m:IsA("Motor6D") or m:IsA("AnimationConstraint")) then motors[joint] = m end
 	end
 	return motors
 end
@@ -91,8 +93,8 @@ end
 function PosePlayer.Play(character, clip, opts)
 	opts = opts or {}
 	local motors = PosePlayer.GetMotors(character)
-	local h = {Playing = true, Time = 0}
-	local speed = opts.Speed or 1
+	-- h.Speed is live: set it to 0 to hold the current frame (hitstop), back to resume
+	local h = {Playing = true, Time = 0, Speed = opts.Speed or 1}
 	local loop = opts.Loop
 	if loop == nil then loop = clip.looped end
 	local weight = opts.Weight or 1
@@ -103,7 +105,7 @@ function PosePlayer.Play(character, clip, opts)
 	conn = RunService.Stepped:Connect(function(_, dt)
 		if not character.Parent then h:Stop() return end
 		local prevT = h.Time
-		h.Time += dt * fps * speed
+		h.Time += dt * fps * h.Speed
 		-- markers crossed this frame
 		local kfs = clip.keyframes
 		while nextMarker <= #kfs and kfs[nextMarker].t <= h.Time do

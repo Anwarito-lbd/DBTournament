@@ -3,6 +3,7 @@
 -- Visual only: always passes { ArenaDamage = false } (db-animation/db-map contract; server already called DamageAt).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local ClientAPI = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("ClientAPI"))
 local VFX = ReplicatedStorage:WaitForChild("VFX", 10)
 
@@ -82,6 +83,17 @@ local SIGNATURE_OVERRIDE: { [string]: { [string]: string } } = {
 	u11_jiren = { Kamehameha = "PowerImpactVFX" },
 }
 
+-- Effects never break combat (pcall), but in Studio a failing effect is reported instead of silently showing nothing.
+local IS_STUDIO = RunService:IsStudio()
+local reported: { [string]: boolean } = {}
+local function run(label: string, fn: any, ...: any)
+	local ok, err = pcall(fn, ...)
+	if not ok and IS_STUDIO and not reported[label] then
+		reported[label] = true
+		warn(string.format("[VFXRouter] %s failed: %s", label, tostring(err)))
+	end
+end
+
 local cache: { [string]: any } = {}
 local function mod(name: string)
 	if not VFX then
@@ -92,6 +104,11 @@ local function mod(name: string)
 		local ok, res = pcall(function()
 			return m and require(m)
 		end)
+		if IS_STUDIO and not m then
+			warn("[VFXRouter] missing VFX module " .. name)
+		elseif IS_STUDIO and not ok then
+			warn(string.format("[VFXRouter] require(%s) failed: %s", name, tostring(res)))
+		end
 		cache[name] = (ok and res) or false
 	end
 	return cache[name] or nil
@@ -105,7 +122,7 @@ ClientAPI.onPlayVFX:Connect(function(kind: string, character: Model, arg: any)
 	if kind == "KiBlast" then
 		local c = mod("VFXCommon")
 		if c and c.KiBlast then
-			pcall(c.KiBlast, character, { Target = if typeof(arg) == "Vector3" then arg else nil })
+			run("KiBlast", c.KiBlast, character, { Target = if typeof(arg) == "Vector3" then arg else nil })
 		end
 		return
 	end
@@ -126,18 +143,19 @@ ClientAPI.onPlayVFX:Connect(function(kind: string, character: Model, arg: any)
 	end
 	if kind == "FinalExplosion" then
 		-- OnDetonate intentionally nil: the SERVER applies damage + self-KO (anti-exploit)
-		pcall(m.Play, character, { ArenaDamage = false, OnDetonate = nil })
+		run(kind, m.Play, character, { ArenaDamage = false, OnDetonate = nil })
 	elseif kind == "Erase" then
-		pcall(
+		run(
+			kind,
 			m.Play,
 			character,
 			{ ArenaDamage = false, OnDetonate = nil, Color = Color3.new(1, 1, 1), Radius = 25, ChargeTime = 0.3 }
 		)
 	elseif kind == "Kaioken" then
-		pcall(m.Play, character, { ArenaDamage = false, Multiplier = typeof(arg) == "number" and arg or 1 })
+		run(kind, m.Play, character, { ArenaDamage = false, Multiplier = typeof(arg) == "number" and arg or 1 })
 	elseif kind == "SolarFlare" then
-		pcall(m.Play, character, { ArenaDamage = false })
+		run(kind, m.Play, character, { ArenaDamage = false })
 	else
-		pcall(m.Play, character, arg, { ArenaDamage = false })
+		run(kind .. " (" .. tostring(modName) .. ")", m.Play, character, arg, { ArenaDamage = false })
 	end
 end)

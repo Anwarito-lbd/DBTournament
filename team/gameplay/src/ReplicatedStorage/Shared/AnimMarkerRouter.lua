@@ -11,8 +11,14 @@
 --
 -- CONTRACT
 --   local R = require(Shared.AnimMarkerRouter)
---   PosePlayer.Play(char, clip, R.opts({ Speed = 1.25 }))
--- R.opts returns {Registry = ..., OnMarker = ...} which PosePlayer consumes.
+--   PosePlayer.Play(char, clip, R.opts({ Speed = 1.25 }, char))
+-- R.opts returns {Registry = ..., OnMarker = ...} which PosePlayer consumes. FightAnimator is the only caller.
+--
+-- COSMETIC ONLY (fight plan P0): markers give a clip its sounds, smears, speed lines and charge/transform
+-- flourishes. They never do the move or the hit: move effects (beams, ki blasts, teleports) come from the server's
+-- PlayVFX broadcast through VFXRouter, and hit feedback (hitstop, impact frames, shakes, bursts) from the server's Hit
+-- event through GameFeel, so it fires once and only when a hit actually lands. Hence no Hitstop/KiBlast/module
+-- markers here, and impact-style markers are skipped on contact frames (keyframes carrying `hit`).
 --
 -- Everything is pcall-guarded and quality-gated: a bad marker can never break combat.
 
@@ -80,15 +86,6 @@ local function fxFolder(): Instance
 		f.Parent = Workspace
 	end
 	return f
-end
-
--- Aim point in front of the character; used when a marker asks for a positional effect.
-local function aimPoint(character: any, distance: number?): Vector3
-	local root = rootOf(character)
-	if not root then
-		return Vector3.zero
-	end
-	return root.Position + root.CFrame.LookVector * (distance or 60)
 end
 
 local function groundPos(character: any): Vector3
@@ -164,7 +161,15 @@ PRIMITIVES["VFXCommon.Afterimage"] = function(character, args)
 	C.Afterimage(character, formColor(C, character), num(args[1], 0.4), 0.35)
 end
 
-PRIMITIVES["VFXCommon.CameraShake"] = function(character, args)
+-- contact frames carry `hit`; their feedback belongs to GameFeel's confirmed-hit path
+local function onContact(mk: any): boolean
+	return type(mk) == "table" and mk.hit ~= nil
+end
+
+PRIMITIVES["VFXCommon.CameraShake"] = function(character, args, mk)
+	if onContact(mk) then
+		return
+	end
 	local C = vfxCommon()
 	if not C then
 		return
@@ -180,7 +185,10 @@ PRIMITIVES["VFXCommon.CameraShake"] = function(character, args)
 	C.CameraShake(num(args[1], 0.2), 0.4)
 end
 
-PRIMITIVES["VFXCommon.FOVPunch"] = function(character, args)
+PRIMITIVES["VFXCommon.FOVPunch"] = function(character, args, mk)
+	if onContact(mk) then
+		return
+	end
 	local C = vfxCommon()
 	if not C then
 		return
@@ -208,41 +216,10 @@ PRIMITIVES["VFXCommon.SpeedLines"] = function(character, args)
 	C.SpeedLines(num(args[1], 0.3), Color3.new(1, 1, 1))
 end
 
--- VFXCommon.Hitstop has no internal rate limit, and GameFeel.client.lua also applies hitstop from the
--- server's Hit event. Whichever lands second would stack on top of the first, so gate the marker path.
-local lastHitstopAt = 0
-
-PRIMITIVES["VFXCommon.Hitstop"] = function(character, args, mk)
-	local C = vfxCommon()
-	if not C then
+PRIMITIVES["VFXCommon.ImpactFrame"] = function(character, args, mk)
+	if onContact(mk) then
 		return
 	end
-	local now = os.clock()
-	if now - lastHitstopAt < 0.12 then
-		return
-	end
-	lastHitstopAt = now
-	-- The animation track is the authority for hitstop timing (VFX_QUALITY_BAR §2).
-	local tier = args[1]
-	if not tier and typeof(mk.hit) == "table" then
-		tier = mk.hit.hitstop or mk.hit.tier
-	end
-	local subject = character
-	if typeof(character) == "Instance" then
-		subject = { character }
-		local pl = Players:GetPlayerFromCharacter(character :: Model)
-		local otherId = pl and pl:GetAttribute("LockTargetId")
-		if otherId then
-			local otherPl = Players:GetPlayerByUserId(otherId)
-			if otherPl and otherPl.Character then
-				table.insert(subject, otherPl.Character)
-			end
-		end
-	end
-	C.Hitstop(subject, tier or "Light")
-end
-
-PRIMITIVES["VFXCommon.ImpactFrame"] = function(character, args)
 	local C = vfxCommon()
 	if not C then
 		return
@@ -254,7 +231,10 @@ PRIMITIVES["VFXCommon.ImpactFrame"] = function(character, args)
 	C.ImpactFrame(mode, frames, subjects)
 end
 
-PRIMITIVES["VFXCommon.Shockwave"] = function(character)
+PRIMITIVES["VFXCommon.Shockwave"] = function(character, _args, mk)
+	if onContact(mk) then
+		return
+	end
 	local C = vfxCommon()
 	if not C then
 		return
@@ -266,7 +246,10 @@ PRIMITIVES["VFXCommon.Shockwave"] = function(character)
 	C.Shockwave(fxFolder(), CFrame.new(root.Position), 1, 6, formColor(C, character), 0.3)
 end
 
-PRIMITIVES["VFXCommon.DebrisBurst"] = function(character)
+PRIMITIVES["VFXCommon.DebrisBurst"] = function(character, _args, mk)
+	if onContact(mk) then
+		return
+	end
 	local C = vfxCommon()
 	if not C then
 		return
@@ -274,7 +257,10 @@ PRIMITIVES["VFXCommon.DebrisBurst"] = function(character)
 	C.DebrisBurst(fxFolder(), groundPos(character), 6, 26, nil, 2)
 end
 
-PRIMITIVES["VFXCommon.GroundCrack"] = function(character)
+PRIMITIVES["VFXCommon.GroundCrack"] = function(character, _args, mk)
+	if onContact(mk) then
+		return
+	end
 	local C = vfxCommon()
 	if not C then
 		return
@@ -282,7 +268,10 @@ PRIMITIVES["VFXCommon.GroundCrack"] = function(character)
 	C.GroundCrack(fxFolder(), groundPos(character), 6, 8, formColor(C, character), 3)
 end
 
-PRIMITIVES["VFXCommon.Impact"] = function(character, args)
+PRIMITIVES["VFXCommon.Impact"] = function(character, args, mk)
+	if onContact(mk) then
+		return
+	end
 	local C = vfxCommon()
 	if not C then
 		return
@@ -293,86 +282,6 @@ PRIMITIVES["VFXCommon.Impact"] = function(character, args)
 		return
 	end
 	C.Impact(fxFolder(), root.Position, 10, formColor(C, character), nil, args[1] or "Heavy", {})
-end
-
-PRIMITIVES["VFXCommon.KiBlast"] = function(character)
-	local C = vfxCommon()
-	if not C then
-		return
-	end
-	if typeof(C.KiBlast) == "function" then
-		C.KiBlast(character)
-	end
-end
-
--- ---------------------------------------------------------------------------------------------------------
--- module calls: "KamehamehaVFX.Play:fire"
--- ---------------------------------------------------------------------------------------------------------
--- Phases that mean "this marker is the release, play the whole move now". Charge/hold phases are skipped so
--- the move does not render twice, because each module's Play() already runs its own charge -> fire sequence.
-local RELEASE_PHASES: { [string]: boolean } = {
-	fire = true,
-	throw = true,
-	strike = true,
-	final = true,
-	appear = true,
-	blast = true,
-	[""] = true,
-}
-
-local transformationHandles: { [any]: any } = {}
-
-local function callModule(character, fnPath: string, arg: string?): boolean
-	local dot = string.find(fnPath, ".", 1, true)
-	if not dot then
-		return false
-	end
-	local modName = string.sub(fnPath, 1, dot - 1)
-	local fnName = string.sub(fnPath, dot + 1)
-	local M = getModule(modName)
-	if not M then
-		return false
-	end
-
-	-- TransformationVFX is stateful: Start returns a handle that must later be stopped.
-	if modName == "TransformationVFX" then
-		if fnName == "Start" and typeof(M.Start) == "function" then
-			local handle = M.Start(character, formIdOf(character), {})
-			transformationHandles[character] = handle
-			return true
-		elseif fnName == "Stop" then
-			local handle = transformationHandles[character]
-			transformationHandles[character] = nil
-			local finish = (arg ~= "false")
-			if handle and typeof(handle.Stop) == "function" then
-				handle:Stop(finish)
-			elseif typeof(M.Play) == "function" then
-				-- No matching Start (e.g. server-driven transform): fall back to the one-shot.
-				pcall(M.Play, character, formIdOf(character), { ArenaDamage = false })
-			end
-			return true
-		end
-	end
-
-	local fn = M[fnName]
-	if typeof(fn) ~= "function" then
-		return false
-	end
-
-	-- Phase gate for .Play
-	if fnName == "Play" then
-		local phase = arg or ""
-		if not RELEASE_PHASES[phase] then
-			return true -- recognised charge/hold marker: handled by the release call
-		end
-	end
-
-	local target = aimPoint(character, 150)
-	local ok, err = pcall(fn, character, target, { ArenaDamage = false, Phase = arg })
-	if not ok then
-		warn(string.format("[AnimMarkerRouter] %s failed: %s", fnPath, tostring(err)))
-	end
-	return true
 end
 
 -- ---------------------------------------------------------------------------------------------------------
@@ -388,53 +297,18 @@ for name, handler in pairs(PRIMITIVES) do
 	end
 end
 
--- Registry entries for module functions are created lazily by the vfx dispatcher below; PosePlayer looks the
--- exact "Module.Function" string up in the table, so seed the ones the clips actually reference.
-local MODULE_MARKERS = {
-	"KamehamehaVFX.Play",
-	"SpiritBombVFX.Play",
-	"DeathBallVFX.Play",
-	"DeathBeamVFX.Play",
-	"FinalFlashVFX.Play",
-	"GalickGunVFX.Play",
-	"BigBangAttackVFX.Play",
-	"DestructoDiscVFX.Play",
-	"NovaStrikeVFX.Play",
-	"BlackFriezaVFX.Play",
-	"FinalExplosionVFX.Play",
-	"MUIRushVFX.Play",
-	"TransformationVFX.Start",
-	"TransformationVFX.Stop",
-	"InstantTransmissionVFX.Vanish",
-	"InstantTransmissionVFX.Appear",
-}
-
-for _, path in ipairs(MODULE_MARKERS) do
-	registry[path] = function(character, arg)
-		callModule(character, path, arg)
-	end
-end
-
 function AnimMarkerRouter.registry(): { [string]: any }
 	return registry
 end
 
--- PosePlayer's OnMarker signature is (mk, kf, clipName) and it deliberately does NOT pass the character, so the
--- emitter is bound once per Play call via AnimMarkerRouter.bind(character) -> AnimMarkerRouter.opts{...}.
--- Clips are played locally for one character at a time (CombatInput/CombatActionUI), so a single binding is
--- sufficient and avoids threading the character through the marker layer.
-local boundCharacter: any = nil
-
-function AnimMarkerRouter.bind(character: any)
-	boundCharacter = character
-end
-
-function AnimMarkerRouter.opts(extra: { [string]: any }?): { [string]: any }
+-- PosePlayer's OnMarker signature is (mk, kf, clipName) and does not pass the character, so each Play gets its own
+-- OnMarker closed over the character it animates (several characters animate at once).
+function AnimMarkerRouter.opts(extra: { [string]: any }?, character: any): { [string]: any }
 	local out: { [string]: any } = if extra then table.clone(extra) else {}
 	out.Registry = registry
 	out.OnMarker = function(mk: any)
 		if mk and mk.sound then
-			AudioRegistry.playMarker(mk.sound, boundCharacter or Workspace, 1.0)
+			AudioRegistry.playMarker(mk.sound, character or Workspace, 1.0)
 		end
 	end
 	return out

@@ -1,5 +1,7 @@
 -- LocalScript (v1.1): gameplay camera + game feel, built on db-animation's VFXCommon.
 --  * Hit feedback: hitstop, camera shake, FOV punch, impact burst / impact frame on KO (only for hits I'm part of or near).
+--    This is the ONLY hit-feedback path (fight plan P0): it runs on the server's confirmed Hit / GuardBreak / Parry
+--    events, so feedback fires once per landed hit. Clip markers and AnimeStyle no longer add their own.
 --  * Vanish (E): afterimage at the old spot, speed lines + whoosh for the vanisher.
 --  * Power-up scream (hold C): 3 stages driven by server KiCharge -> aura grows, ground cracks + debris on each stage,
 --    camera rumble, and a big Power Level readout with digit roll.
@@ -106,6 +108,30 @@ ClientAPI.onCombatEvent:Connect(function(kind, data)
 		if data[1] == player.UserId then
 			C.SpeedLines(0.25, Color3.new(1, 1, 1), 30)
 			C.FOVPunch(6)
+		end
+	elseif kind == "GuardBreak" or kind == "Parry" then
+		-- the guard shatters / the strike is turned aside: both fighters freeze, impact frame if I'm involved
+		local a, b = charOf(data[1]), charOf(data[2])
+		local subjects = {}
+		for _, m in { a, b } do
+			if m then
+				table.insert(subjects, m)
+			end
+		end
+		if #subjects == 0 then
+			return
+		end
+		C.Hitstop(subjects, if kind == "GuardBreak" then "Heavy" else "Medium")
+		if data[1] == player.UserId or data[2] == player.UserId then
+			C.CameraShake(C.IMPACT_TIERS.Heavy.Shake * (if kind == "GuardBreak" then 1 else 0.6), 0.4)
+			if os.clock() - lastHeavyFrame > 1.5 then
+				lastHeavyFrame = os.clock()
+				C.ImpactFrame("invert", 2, subjects)
+			end
+		end
+		local r = rootOf(a)
+		if r then
+			C.Shockwave(fx(), CFrame.new(r.Position), 1, if kind == "GuardBreak" then 12 else 7, Color3.fromRGB(200, 230, 255), 0.3)
 		end
 	elseif kind == "Dodged" then
 		local m = charOf(data[1])

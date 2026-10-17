@@ -23,15 +23,8 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local ClientAPI = require(Shared:WaitForChild("ClientAPI"))
 local Config = require(Shared:WaitForChild("Config"))
 local AudioRegistry = require(Shared:WaitForChild("AudioRegistry"))
-local AnimMarkerRouter = require(Shared:WaitForChild("AnimMarkerRouter"))
-
-local PosesFolder = ReplicatedStorage:WaitForChild("Poses", 10)
-local PosePlayer = PosesFolder and require(PosesFolder:WaitForChild("PosePlayer"))
--- Each hero owns a clip set; Shared.clips covers the rest of the roster.
-local GokuPoses = PosesFolder and require(PosesFolder:WaitForChild("Goku"))
-local VegetaPoses = PosesFolder and require(PosesFolder:WaitForChild("Vegeta"))
-local FriezaPoses = PosesFolder and require(PosesFolder:WaitForChild("Frieza"))
-local SharedPoses = PosesFolder and require(PosesFolder:WaitForChild("Shared"))
+-- FightAnimator owns every combat pose (per-champion clips, prediction vs server echo, hitstop)
+local FightAnimator = require(Shared:WaitForChild("FightAnimator"))
 
 local player = Players.LocalPlayer
 local mouse = player:GetMouse()
@@ -50,75 +43,6 @@ local function getHum(): Humanoid?
 	local c = getChar()
 	return c and c:FindFirstChildOfClass("Humanoid")
 end
-
--- ========================================================
--- CHAMPION-AWARE CLIP RESOLUTION
--- Every move used to play GokuPoses.*, so a Vegeta or Frieza player animated as Goku and the
--- authored Vegeta clips (GalickGun_*, FinalFlash_*, BigBangAttack, FinalExplosion) and Frieza
--- clips (DeathBeam_*, DeathBall_*, DestructoDisc, NovaStrike, BlackNova) were unreachable.
--- ========================================================
-local function clipOf(mod: any, name: string): any
-	if not mod then
-		return nil
-	end
-	return mod[name] or (mod.clips and mod.clips[name])
-end
-
-local function championId(): string?
-	local ch = getChar()
-	local id = player:GetAttribute("Character")
-	if type(id) ~= "string" and ch then
-		id = ch:GetAttribute("ChampionModel")
-	end
-	if type(id) == "string" and id ~= "" then
-		return id
-	end
-	return nil
-end
-
-local function posesFor(id: string?): any
-	if id then
-		if string.find(id, "vegeta") then
-			return VegetaPoses
-		end
-		if string.find(id, "frieza") or string.find(id, "frost") then
-			return FriezaPoses
-		end
-		if string.find(id, "goku") then
-			return GokuPoses
-		end
-	end
-	return SharedPoses or GokuPoses
-end
-
-local function clipFor(name: string): any
-	return clipOf(posesFor(championId()), name)
-end
-
-local function championKey(): string
-	local id = championId()
-	if id then
-		if string.find(id, "vegeta") then
-			return "vegeta"
-		end
-		if string.find(id, "frieza") or string.find(id, "frost") then
-			return "frieza"
-		end
-		if string.find(id, "goku") then
-			return "goku"
-		end
-	end
-	return "shared"
-end
-
--- Signature beam per champion. The move KIND stays "Kamehameha" so VFXRouter's per-champion module
--- switch still applies; only the CLIP differs (Vegeta fires a Galick Gun, Frieza a Death Beam).
-local SIGNATURE: { [string]: { charge: string, fire: string, move: string } } = {
-	goku = { charge = "Kamehameha_Charge", fire = "Kamehameha_Fire", move = "Kamehameha" },
-	vegeta = { charge = "GalickGun_Charge", fire = "GalickGun_Fire", move = "Kamehameha" },
-	frieza = { charge = "DeathBeam_Charge", fire = "DeathBeam_Fire", move = "Kamehameha" },
-	shared = { charge = "KiVolley", fire = "KiVolley", move = "Kamehameha" },
-}
 
 local function isAirborne(): boolean
 	local hum = getHum()
@@ -414,25 +338,11 @@ end)
 -- ========================================================
 local comboStep = 1
 local lastM1Time = 0
-local activePoseHandle = nil
 
--- Plays a clip by NAME (so the correct champion's clips are used) and routes that clip's
--- vfx/sound markers through AnimMarkerRouter. Without opts.Registry/OnMarker, PosePlayer drops
--- every marker, which is what made the strikes silent and effect-free.
-local function playPose(name: string, speed: number)
-	if not PosePlayer then
-		return
-	end
-	local ch = getChar()
-	local clip = clipFor(name)
-	if not ch or not clip then
-		return
-	end
-	if activePoseHandle and activePoseHandle.Stop then
-		activePoseHandle:Stop(0.08)
-	end
-	AnimMarkerRouter.bind(ch)
-	activePoseHandle = PosePlayer.Play(ch, clip, AnimMarkerRouter.opts({ Speed = speed or 1.25, Name = name }))
+-- Predicted locally the moment I press; the server's echo of the same move family is then ignored for my character
+-- (FightAnimator), so a move never plays twice. family = the server's move kind.
+local function playPose(name: string, speed: number, family: string, loop: boolean?)
+	FightAnimator.play(getChar(), name, { source = "local", family = family, speed = speed, loop = loop })
 end
 
 local function executeM1()
@@ -465,15 +375,15 @@ local function executeM1()
 	-- SFX, afterimage smear, hitstop, impact frame, camera shake, FOV), so the manual duplicates that used
 	-- to sit here are gone - they would double every hit sound and camera kick. Airborne uses the air combo.
 	if isAirborne() then
-		playPose("AirCombo", 1.15)
+		playPose("AirCombo", 1.15, "M1")
 	elseif comboStep == 1 then
-		playPose("M1_1", 1.35)
+		playPose("M1_1", 1.35, "M1")
 	elseif comboStep == 2 then
-		playPose("M1_2", 1.35)
+		playPose("M1_2", 1.35, "M1")
 	elseif comboStep == 3 then
-		playPose("M1_3", 1.35)
+		playPose("M1_3", 1.35, "M1")
 	elseif comboStep == 4 then
-		playPose("M1_4", 1.15)
+		playPose("M1_4", 1.15, "M1")
 	end
 
 	comboStep = if comboStep >= 4 then 1 else comboStep + 1
@@ -490,7 +400,7 @@ local function executeHeavy()
 	end
 
 	-- Heavy doubles as the launcher ender: Launcher while the target is airborne, Heavy on the ground.
-	playPose(if isAirborne() then "Launcher" else "Heavy", 1.0)
+	playPose(if isAirborne() then "Launcher" else "Heavy", 1.0, "Heavy")
 
 	ClientAPI.requestMove("Heavy", aimPos)
 end
@@ -502,7 +412,7 @@ local function executeKiBlast()
 		myRoot.CFrame = CFrame.lookAt(myRoot.Position, Vector3.new(aimPos.X, myRoot.Position.Y, aimPos.Z))
 	end
 
-	playPose("KiVolley", 1.4)
+	playPose("KiVolley", 1.4, "KiBlast")
 
 	ClientAPI.requestMove("KiBlast", aimPos)
 end
@@ -514,13 +424,17 @@ local function executeKamehameha()
 		myRoot.CFrame = CFrame.lookAt(myRoot.Position, Vector3.new(aimPos.X, myRoot.Position.Y, aimPos.Z))
 	end
 
-	local sig = SIGNATURE[championKey()] or SIGNATURE.shared
-	playPose(sig.charge, 1.0)
+	local ch = getChar()
+	if not ch then
+		return
+	end
+	local charge, fire = FightAnimator.beamClips(ch)
+	playPose(charge, 1.0, "Kamehameha")
 	task.delay(0.6, function()
-		playPose(sig.fire, 1.0)
+		playPose(fire, 1.0, "Kamehameha")
 	end)
 
-	ClientAPI.requestMove(sig.move, aimPos)
+	ClientAPI.requestMove("Kamehameha", aimPos) -- one move kind; VFXRouter picks each champion's signature effect
 end
 
 local function moveDir(): Vector3
@@ -581,13 +495,13 @@ UserInputService.InputBegan:Connect(function(input, processed)
 		ClientAPI.transform("Next")
 	elseif k == Enum.KeyCode.F then
 		ClientAPI.block(true)
-		playPose("Guard", 1.2)
+		playPose("Guard", 1.2, "Guard", true) -- held until F is released
 		-- The Guard clip carries no sound marker, so the guard impact stays a manual call.
 		AudioRegistry.play("Block", getChar(), 0.7)
 	elseif k == Enum.KeyCode.Q then
 		ClientAPI.dash(moveDir())
 		-- Dash's whoosh comes from the clip's own `sound = "Dash"` marker now.
-		playPose("Dash", 1.5)
+		playPose("Dash", 1.5, "Dash")
 	elseif k == Enum.KeyCode.E then
 		ClientAPI.vanish(moveDir())
 		-- No vanish clip exists (the server owns the teleport), so play the SFX directly.
@@ -620,48 +534,9 @@ end)
 UserInputService.InputEnded:Connect(function(input)
 	if input.KeyCode == Enum.KeyCode.F then
 		ClientAPI.block(false)
-		if activePoseHandle and activePoseHandle.Stop then
-			activePoseHandle:Stop(0.1)
+		if FightAnimator.current(getChar()) == "Guard" then
+			FightAnimator.stop(getChar(), 0.1)
 		end
-	end
-end)
-
--- ========================================================
--- HIT REACTIONS (HurtLight / HurtHeavy / KO)
--- All three clips exist for every hero but nothing ever played them, so a fighter taking a hit showed no
--- reaction at all. Light hits flinch, heavy hits stagger, a KO drops them.
--- ========================================================
-local lastReactAt = 0
-ClientAPI.onCombatEvent:Connect(function(kind: string, data: any)
-	if kind ~= "Hit" or type(data) ~= "table" then
-		return
-	end
-	local me = getChar()
-	if not me then
-		return
-	end
-	local victim = data[1]
-	if victim ~= player.UserId and victim ~= me then
-		return
-	end
-	if player:GetAttribute("Blocking") == true then
-		return
-	end
-	local now = os.clock()
-	if now - lastReactAt < 0.18 then
-		return
-	end
-	lastReactAt = now
-
-	local knockback = data[4] or 0
-	if data[5] then
-		playPose("KO", 1.0)
-	elseif knockback >= 40 then
-		playPose("HurtHeavy", 1.15)
-	elseif knockback >= 15 then
-		playPose("HurtHeavy", 1.3)
-	else
-		playPose("HurtLight", 1.35)
 	end
 end)
 
