@@ -119,3 +119,33 @@ the same episode pipeline, each through the full Phase 1 checklist.
 ## Phase 8: release gates
 Rights clearance for Dragon Ball characters/story, every third-party license recorded, no ripped media,
 mobile FPS/memory pass, 2-client regression, DataStore save/load on a published test place.
+
+## Priority reset (2026-10-16): Universe battle first, then reuse it for Story Mode
+The Universe battle (Tournament of Power) is the core loop: a 10-minute player gets about two rounds. Story Mode is
+for invested players. Build the battle's art and feel first; Story Mode then reuses the same fighters,
+animations and VFX. Audit (Studio, 2026-10-16) that drives this order:
+- **Arena:** greybox. Flat disc in a saturated blue void, flat-slab universe stands, a primitive Zeno box,
+  translucent bars as light shafts, ClockTime 0 with heavy blue fog.
+- **Combat animation:** the 99 PosePlayer clips are hand-typed joint angles that had never been viewed. Posed on
+  a rig they are contorted (arms folded over the head, a 220 degree elbow in the jab). Re-author, don't patch.
+- **Characters:** Style B R15 fighters, still mostly generated rigs; no per-character hair/outfit pass yet.
+
+### Step A: Tournament arena art (first)
+1. Art-direction board: anime Tournament of Power references + the vault concept art; one approved look
+   (stone ring, void sky, stands, Zeno box) before building.
+2. Ring rebuild on the existing ArenaDamage chunk contract: stone materials (MaterialGenerator), bevels, cracked
+   pillars and ruins (`altar_ruins`, `ancient_ruins` FBX via Studio import), destruction stages.
+3. Sky and light: space skybox, Atmosphere, grading, bloom and sun rays instead of the blue fog.
+4. Stands for 12 universes with spectator silhouettes and banners; Zeno's box redone.
+5. Mobile performance budget check.
+### Step B: Fighters (Style B R15, as real as possible)
+Per-character comparison sheet against online references, then hair/outfit/face builds (Blender) and form swaps,
+starting with the most-picked fighters (Goku, Vegeta, Frieza, Jiren, Broly).
+### Step C: Combat animation
+Core set re-authored in Eclipse Animator on the R15 rig, to the POLISH_BIBLE frame specs: idle, run, dash, M1 1-4,
+heavy, block/parry, hurt light/heavy, knockback, KO, ki blast, Kamehameha charge/fire, transform. Wired through the
+existing marker pipeline (AnimMarkerRouter) for hitstop, VFX and sound; verified on a rig with frame captures.
+### Step D: Combat feel and VFX
+Hitstop tiers, camera choreography per move, destruction and VFX to the vault's VFX_QUALITY_BAR.
+### Step E: Story Mode on top
+Canyon and later episode maps from the same environment kit; episodes reuse the battle animations and VFX.
