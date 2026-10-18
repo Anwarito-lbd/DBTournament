@@ -5,7 +5,7 @@
 -- makes them their own fighter: Jiren is silent and crushing, Toppo roars and becomes a God of Destruction, Dyspo is
 -- all speed, Kahseral shoots like a marksman, Cocotte fights from behind her dimension walls, and the big three
 -- (Vuon, Zoiray, Tupper) are brawlers whose power-ups break the floor. Effects named here live in
--- ReplicatedStorage.VFX or in Kits/PrideTrooper/VFX. Fields are documented in Kits/init.lua.
+-- ReplicatedStorage.VFX or in Kits/PrideTroopers/VFX. Fields are documented in Kits/init.lua.
 -- powerUp.screamStage: power-up stages run 1-3, so 4 means the fighter never screams.
 local function rgb(r: number, g: number, b: number): Color3
 	return Color3.fromRGB(r, g, b)
@@ -15,7 +15,7 @@ local hex = Color3.fromHex
 local JUSTICE_RED = rgb(235, 60, 60)
 
 return {
-	race = "PrideTrooper",
+	race = "PrideTroopers",
 	defaults = {
 		signatures = { Kamehameha = "JusticeBlastVFX", JusticePose = "JusticePoseVFX" },
 		cameras = { Kamehameha = { zoom = 6, shake = 0.3 }, JusticePose = { zoom = 4, shake = 0.15 } },
