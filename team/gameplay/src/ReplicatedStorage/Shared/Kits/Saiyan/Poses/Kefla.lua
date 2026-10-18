@@ -3,8 +3,9 @@
 -- squarer and taller with both hands loose, and her heavy is a straight drop-kick through the guard. The beam
 -- slot is the Gigantic Ray, both palms forward from a wide stance. Clips not listed here fall back to
 -- Caulifla's set, then Goku's, then Shared.
-local B = require(script.Parent.Parent:WaitForChild("ClipBuilder"))
-local Caulifla = require(script.Parent:WaitForChild("Caulifla"))
+-- `script` is absent in the plain-Luau data check (tests/kit_saiyan_tests.luau): load siblings by path there
+local B = if script then require(script.Parent.Parent:WaitForChild("ClipBuilder")) else require("../ClipBuilder")
+local Caulifla = if script then require(script.Parent:WaitForChild("Caulifla")) else require("./Caulifla")
 
 local stance = {
 	Root = { pos = { 0, -0.2, 0 }, rot = { 0, 0, 0 } },

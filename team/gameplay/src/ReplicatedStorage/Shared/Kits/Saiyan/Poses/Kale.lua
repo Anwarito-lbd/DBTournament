@@ -3,8 +3,9 @@
 -- strikes she fights like Broly (his heavy and finisher are inherited). Her beam slot is the Eraser Cannon: one
 -- arm drawn back with a green sphere, pushed out from the palm. Clips not listed here fall back to Broly's
 -- set, then Goku's, then Shared.
-local B = require(script.Parent.Parent:WaitForChild("ClipBuilder"))
-local Broly = require(script.Parent:WaitForChild("Broly"))
+-- `script` is absent in the plain-Luau data check (tests/kit_saiyan_tests.luau): load siblings by path there
+local B = if script then require(script.Parent.Parent:WaitForChild("ClipBuilder")) else require("../ClipBuilder")
+local Broly = if script then require(script.Parent:WaitForChild("Broly")) else require("./Broly")
 
 local stance = {
 	Root = { pos = { 0, -0.15, 0 }, rot = { 0, 0, 0 } },

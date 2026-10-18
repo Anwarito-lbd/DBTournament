@@ -3,7 +3,8 @@
 -- the chin up. Her strikes are wild and fast (short anticipation): a spinning back-kick finisher and a jumping
 -- axe kick. The beam slot is the Crush Cannon, fired one-handed from the hip. Kefla's set builds on this one.
 -- Clips not listed here fall back to Goku's set, then Shared.
-local B = require(script.Parent.Parent:WaitForChild("ClipBuilder"))
+-- `script` is absent in the plain-Luau data check (tests/kit_saiyan_tests.luau): load siblings by path there
+local B = if script then require(script.Parent.Parent:WaitForChild("ClipBuilder")) else require("../ClipBuilder")
 
 local stance = {
 	Root = { pos = { 0, -0.1, 0 }, rot = { 0, 0, 0 } },

@@ -3,7 +3,8 @@
 -- weight on the toes. No guard to speak of; the heavy is a two-armed overhead smash, the finisher a shoulder
 -- charge. The beam slot is a roar with both arms flung back and the chest forward (his Gigantic Roar).
 -- Kale's set builds on this one. Clips not listed here fall back to Goku's set, then Shared.
-local B = require(script.Parent.Parent:WaitForChild("ClipBuilder"))
+-- `script` is absent in the plain-Luau data check (tests/kit_saiyan_tests.luau): load siblings by path there
+local B = if script then require(script.Parent.Parent:WaitForChild("ClipBuilder")) else require("../ClipBuilder")
 
 local stance = {
 	Root = { pos = { 0, -0.5, 0 }, rot = { 0, 0, 0 } },

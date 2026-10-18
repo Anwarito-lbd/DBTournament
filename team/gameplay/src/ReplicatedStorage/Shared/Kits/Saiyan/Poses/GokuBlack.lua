@@ -3,7 +3,8 @@
 -- fighting one-handed as if the fight were beneath him. The finisher is a palm strike, the heavy a thrust with a
 -- blade of ki formed along the right hand. His beam slot keeps Goku's cupped-hands stance (fall-through), since
 -- the Black Kamehameha mocks the original. Clips not listed here fall back to Goku's set, then Shared.
-local B = require(script.Parent.Parent:WaitForChild("ClipBuilder"))
+-- `script` is absent in the plain-Luau data check (tests/kit_saiyan_tests.luau): load siblings by path there
+local B = if script then require(script.Parent.Parent:WaitForChild("ClipBuilder")) else require("../ClipBuilder")
 
 local stance = {
 	Root = { pos = { 0, 0, 0 }, rot = { 0, 0, 0 } },

@@ -2,7 +2,8 @@
 -- Clip set: Gohan. Piccolo's student: low, wide stance with the lead hand open and forward; strikes come in as
 -- a rising knee and a two-handed hammer. The beam slot is the Masenko, both palms stacked above the forehead
 -- and thrown down-forward. Clips not listed here fall back to Goku's set, then Shared.
-local B = require(script.Parent.Parent:WaitForChild("ClipBuilder"))
+-- `script` is absent in the plain-Luau data check (tests/kit_saiyan_tests.luau): load siblings by path there
+local B = if script then require(script.Parent.Parent:WaitForChild("ClipBuilder")) else require("../ClipBuilder")
 
 local stance = {
 	Root = { pos = { 0, -0.35, 0 }, rot = { 0, 0, 0 } },

@@ -3,7 +3,8 @@
 -- over his shoulder. The finisher and heavy are sword cuts (a horizontal slash, then a rising cut into a
 -- downward split). The beam slot is the Burning Attack: a fast run of hand signs closing into a palm diamond.
 -- Clips not listed here fall back to Goku's set, then Shared.
-local B = require(script.Parent.Parent:WaitForChild("ClipBuilder"))
+-- `script` is absent in the plain-Luau data check (tests/kit_saiyan_tests.luau): load siblings by path there
+local B = if script then require(script.Parent.Parent:WaitForChild("ClipBuilder")) else require("../ClipBuilder")
 
 local stance = {
 	Root = { pos = { 0, -0.25, 0 }, rot = { 0, 0, 0 } },
