@@ -11,7 +11,7 @@ local rgb = E.rgb
 
 local M = {}
 M.STYLE = {
-	Core = rgb(235, 250, 255), Glow = rgb(70, 160, 255), Haze = rgb(30, 80, 230), Width = 8, Charge = 1.3,
+	Core = rgb(235, 250, 255), Glow = rgb(70, 160, 255), Haze = rgb(30, 80, 230), Width = 8, Charge = 1.2,
 	Duration = 1.5, Spiral = true, ImpactSize = 44, Shake = 4.5, ChargeAt = "hands", Speed = 380,
 }
 
